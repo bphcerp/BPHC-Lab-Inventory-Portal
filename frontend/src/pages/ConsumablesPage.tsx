@@ -75,15 +75,15 @@ const ConsumablesPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Consumables</h1>
-      <Button color="blue" onClick={() => setIsModalOpen(true)}>Add Consumable</Button>
+      <h1 className="text-2xl font-bold mb-4 text-center">Consumables</h1>
+      <Button color="blue" onClick={() => setIsModalOpen(true)} className="mx-auto block">Add Consumable</Button>
       <AddConsumableModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleAddConsumable} 
       />
-      <div className="mt-4">
-        <table className="min-w-full bg-white">
+      <div className="mt-4 flex justify-center">
+        <table className="min-w-full bg-white text-center">
           <thead>
             <tr>
               <th className="py-2 px-4 border-b">Name</th>

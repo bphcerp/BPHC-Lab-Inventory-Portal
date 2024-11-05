@@ -1,9 +1,8 @@
-// src/components/Sidebar.tsx
 import { HiChartPie } from "react-icons/hi";
 import { IoCashOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineInventory } from "react-icons/md";
-
+import { FaSignOutAlt } from "react-icons/fa"; // Import new icon for OUT page
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,7 +20,6 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
       navigate("/login");
     } catch (error) {
       console.error('Logout failed:', error);
-      // Optionally display an error toast or message
     }
   };
 
@@ -30,8 +28,8 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
       className={`fixed z-10 top-16 left-0 w-64 h-[calc(100vh-4rem)] bg-gray-100 text-gray-900 flex flex-col shadow-md transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
     >
       <nav className="flex flex-col flex-grow mt-4">
-        
-        <NavItem href="/consumables" icon={<MdOutlineInventory/>} label="Consumables" /> {/* New link added */}
+        <NavItem href="/consumables" icon={<MdOutlineInventory />} label="Consumables" />
+        <NavItem href="/out" icon={<FaSignOutAlt />} label="OUT" /> {/* Add new link for OUT */}
       </nav>
       <div className="px-4 py-3 border-t border-gray-300">
         <button
@@ -45,7 +43,6 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
   );
 };
 
-// NavItem Component for better modularity
 const NavItem: React.FC<{ href: string; icon: React.ReactNode; label: string }> = ({ href, icon, label }) => (
   <a
     href={href}

@@ -7,10 +7,9 @@ import cookieParser from 'cookie-parser';
 import userRoutes from './routes/user';
 import categoryRoutes from './routes/category';
 import consumableCategoryRoutes from './routes/consumableCategory';
-import consumableRoutes from './routes/consumable';  // New route import for consumables
-import vendorRoutes from './routes/vendor';           // New route import for vendors
-
-import { OAuth2Client } from 'google-auth-library';
+import consumableRoutes from './routes/consumable';
+import vendorRoutes from './routes/vendor';
+import outRoutes from './routes/out';
 import { authenticateToken } from './middleware/authenticateToken';
 
 dotenv.config();
@@ -26,22 +25,23 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   origin: process.env.FRONTEND_URL!,
-  credentials: true // Allow cookies to be sent
+  credentials: true
 }));
 
 app.use('/api/user', userRoutes);
 app.use('/api/category', categoryRoutes);
-app.use('/api/consumable', consumableRoutes);  // New consumables route
-app.use('/api/vendor', vendorRoutes);           // New vendors route
+app.use('/api/consumable', consumableRoutes); // Main consumable routes
+app.use('/api/consumable', outRoutes); // Mounting out routes at the same base URL as consumable
+app.use('/api/vendor', vendorRoutes);
 app.use('/api/consumable-category', consumableCategoryRoutes);
 app.use(express.static("public"));
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('Welcome to LAMBDA LAB ERP API');
+  res.send('Welcome to BITS PILANI Inventory System API');
 });
 
 app.get('/api/check-auth', authenticateToken, (req: Request, res: Response) => {
-  res.send('Welcome to LAMBDA LAB ERP API (Authenticated)');
+  res.send('Welcome to BITS PILANI Inventory System API (Authenticated)');
 });
 
 app.listen(PORT, () => {
