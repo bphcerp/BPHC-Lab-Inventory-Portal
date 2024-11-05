@@ -1,4 +1,4 @@
-# LAMBDA Inventory Portal
+# BITS Inventory Management Portal
 
 ## Steps to get the software running on your machine:
 
@@ -21,6 +21,7 @@
     - #### Frontend:
         - Add this to the env file
             ```env
+            VITE_OAUTH_CID=
             VITE_BACKEND_URL=http://localhost:3000/api
             ```
     - #### Backend:
@@ -29,6 +30,7 @@
             FRONTEND_URL= http://localhost:5173 
             DB_URI=mongodb://mongo:27017/<database_name>
             JWT_SECRET_KEY=<some_random_string>
+            OAUTH_CID=
             PORT=3000
             ```
     - **Note: this is only for development. Add the appropriate URL in the production environment.**
