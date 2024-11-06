@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { ConsumableModel } from '../models/consumable';
+import { ConsumableCategoryModel } from '../models/consumableCategory';
 import { authenticateToken } from '../middleware/authenticateToken';
 
 const router = express.Router();
@@ -8,7 +9,7 @@ router.use(authenticateToken);
 // POST /api/consumable
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { consumableName, quantity, unitPrice, vendor, date, consumableCategory } = req.body;
+    const { consumableName, quantity, unitPrice, vendor, date, consumableCategory, categoryFields} = req.body;
 
     const consumable = new ConsumableModel({
       consumableName,
@@ -17,6 +18,7 @@ router.post('/', async (req: Request, res: Response) => {
       vendor,
       date,
       consumableCategory,
+      categoryFields,
     });
 
     await consumable.save();

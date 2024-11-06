@@ -77,7 +77,7 @@ const SignInUpPane = () => {
                 if (token) {
                     localStorage.setItem("token", token); // Save token to localStorage
                     console.log("Token saved:", token);
-                    navigate("/dashboard");
+                    navigate("/consumables");
                 } else {
                     toastError("Login successful, but no token received");
                 }

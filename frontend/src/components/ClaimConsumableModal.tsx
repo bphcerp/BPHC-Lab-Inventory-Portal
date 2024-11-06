@@ -17,10 +17,11 @@ interface ClaimConsumableModalProps {
 
 const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onClose, consumable, onClaimSuccess }) => {
   const [claimQuantity, setClaimQuantity] = useState<number | string>('');
+  const [issuedBy, setIssuedBy] = useState<string>('');
 
   const handleClaimConsumable = async () => {
-    if (!consumable || !claimQuantity || Number(claimQuantity) <= 0) {
-      toastError("Please enter a valid claim quantity.");
+    if (!consumable || !claimQuantity || Number(claimQuantity) <= 0 || !issuedBy.trim()) {
+      toastError("Please enter a valid claim quantity and issued by name.");
       return;
     }
 
@@ -32,8 +33,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
     }
 
     try {
-      // Ensure URL is correctly formatted without duplication
-      const backendUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, ""); // Removes trailing slash if exists
+      const backendUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "");
       const url = `${backendUrl}/consumable/claim/${consumable._id}`;
       console.log("Claim URL:", url);
 
@@ -43,7 +43,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ quantity: Number(claimQuantity) }),
+        body: JSON.stringify({ quantity: Number(claimQuantity), issuedBy }),
       });
 
       if (!response.ok) {
@@ -61,7 +61,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
   };
 
   return (
-    <Modal show={isOpen} onClose={onClose}>
+    <Modal show={isOpen} onClose={onClose} size="lg">
       <Modal.Header>Claim Consumable</Modal.Header>
       <Modal.Body>
         <div className="space-y-4">
@@ -78,11 +78,22 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
               className="mt-1"
             />
           </div>
+          <div>
+            <Label htmlFor="issuedBy" value="Issued By" />
+            <TextInput
+              id="issuedBy"
+              type="text"
+              value={issuedBy}
+              onChange={(e) => setIssuedBy(e.target.value)}
+              required
+              className="mt-1"
+            />
+          </div>
         </div>
       </Modal.Body>
       <Modal.Footer>
         <Button color="gray" onClick={onClose}>Cancel</Button>
-        <Button color="success" onClick={handleClaimConsumable}>Claim</Button>
+        <Button color="blue" onClick={handleClaimConsumable}>Claim</Button>
       </Modal.Footer>
     </Modal>
   );

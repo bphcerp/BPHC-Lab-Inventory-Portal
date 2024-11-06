@@ -21,6 +21,18 @@ export interface Vendor {
   name: string;
 }
 
+export interface Consumable {
+  _id?: string;
+  consumableName: string;
+  quantity: number;
+  unitPrice: number;
+  vendor: string;
+  date: string;
+  totalCost: number;
+  consumableCategory: string;
+  categoryFields?: { [key: string]: any };
+}
+
 const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [consumableName, setConsumableName] = useState('');
   const [category, setCategory] = useState<string>('');
@@ -47,7 +59,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category/consumable`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category`, {
         headers: getAuthHeaders(),
       });
       const data = await response.json();
@@ -94,6 +106,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
       const newCategory = await response.json();
       setCategories((prev) => [...prev, newCategory]);
       toastSuccess("Category added successfully");
+      fetchCategories();
     } catch (error) {
       toastError("Error adding category: " + (error as Error).message);
       console.error(error);
@@ -134,52 +147,46 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     setTotalCost(cost);
   }, [quantity, unitPrice]);
 
+  const handleCategoryChange = (selectedCategoryId: string) => {
+  setCategory(selectedCategoryId);
+  const selectedCategory = categories.find(cat => cat._id === selectedCategoryId);
+  if (selectedCategory) {
+    setCategoryFields(selectedCategory.fields || []); // Set fields for the selected category
+    // Reset the values for new fields when category changes
+    const newCategoryFieldValues: { [key: string]: any } = {};
+    selectedCategory.fields?.forEach(field => {
+      newCategoryFieldValues[field.name] = '';
+    });
+    setCategoryFieldValues(newCategoryFieldValues);
+  }
+};
   const handleSubmit = async () => {
     // Ensure all required fields are filled
     if (!consumableName || !quantity || !unitPrice || !vendorName || !date || !totalCost || !category) {
-      toastError("Please fill in all fields."); 
+      toastError('Please fill in all fields.');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          consumableName,
-          quantity: Number(quantity),
-          unitPrice: Number(unitPrice),
-          vendor: vendors.find(vendor => vendor.name === vendorName)?._id || '',
-          date,
-          totalCost: Number(totalCost),
-          consumableCategory: category, // Ensure category ID is sent correctly
-          categoryFields: categoryFieldValues
-        }),
-      });
+      const newConsumable: Consumable = {
+        consumableName,
+        quantity: Number(quantity),
+        unitPrice: Number(unitPrice),
+        vendor: vendors.find(vendor => vendor.name === vendorName)?._id || '',
+        date,
+        totalCost: Number(totalCost),
+        consumableCategory: category,
+        categoryFields: categoryFieldValues,
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error('Failed to add consumable: ' + errorData.message || response.statusText);
-      }
-
-      await response.json(); 
-      toastSuccess("Consumable added successfully");
+      await onSubmit(newConsumable);
       onClose();
     } catch (error) {
-      console.error("Error adding consumable:", error);
-      toastError("Error adding consumable: " + (error as Error).message);
+      console.error('Error adding consumable:', error);
+      toastError('Error adding consumable: ' + (error as Error).message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCategoryChange = (selectedCategoryId: string) => {
-    setCategory(selectedCategoryId);
-    const selectedCategory = categories.find(cat => cat._id === selectedCategoryId);
-    if (selectedCategory) {
-      setCategoryFields(selectedCategory.fields || []); // Set fields for the selected category
-      setCategoryFieldValues({}); // Reset the values for new fields when category changes
     }
   };
 
@@ -191,6 +198,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
           isOpen={isCategoryModalOpen}
           onClose={() => setIsCategoryModalOpen(false)}
           onAddCategory={handleAddCategory}
+          onCategoryAdded={fetchCategories}
         />
         <AddVendorModal
           isOpen={isVendorModalOpen}
@@ -295,7 +303,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
             </div>
           </div>
           <div>
-            <Label htmlFor="date" value="Date" />
+            <Label htmlFor="date" value="Procurement Date" />
             <TextInput
               id="date"
               type="date"
@@ -334,3 +342,4 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
 };
 
 export default AddConsumableModal;
+

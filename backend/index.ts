@@ -5,11 +5,12 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import userRoutes from './routes/user';
-import categoryRoutes from './routes/category';
+//import categoryRoutes from './routes/category';
 import consumableCategoryRoutes from './routes/consumableCategory';
 import consumableRoutes from './routes/consumable';
 import vendorRoutes from './routes/vendor';
 import outRoutes from './routes/out';
+import historyRoutes from './routes/history';
 import { authenticateToken } from './middleware/authenticateToken';
 
 dotenv.config();
@@ -29,11 +30,12 @@ app.use(cors({
 }));
 
 app.use('/api/user', userRoutes);
-app.use('/api/category', categoryRoutes);
+//app.use('/api/category', categoryRoutes);
 app.use('/api/consumable', consumableRoutes); // Main consumable routes
 app.use('/api/consumable', outRoutes); // Mounting out routes at the same base URL as consumable
 app.use('/api/vendor', vendorRoutes);
-app.use('/api/consumable-category', consumableCategoryRoutes);
+app.use('/api/category', consumableCategoryRoutes);
+app.use('/api/consumable',historyRoutes);
 app.use(express.static("public"));
 
 app.get('/', (req: Request, res: Response) => {

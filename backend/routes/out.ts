@@ -12,10 +12,10 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
 // POST /api/consumable/claim/:id - Claim a consumable
 router.post('/claim/:id', asyncHandler(async (req: Request, res: Response) => {
   const consumableId = req.params.id;
-  const { quantity } = req.body;
+  const { quantity, issuedBy } = req.body;
 
-  if (typeof quantity !== 'number' || quantity <= 0) {
-    res.status(400).json({ message: 'Invalid quantity specified.' });
+  if (typeof quantity !== 'number' || quantity <= 0 || !issuedBy.trim()) {
+    res.status(400).json({ message: 'Invalid quantity or issued by name specified.' });
     return;
   }
 
@@ -32,6 +32,7 @@ router.post('/claim/:id', asyncHandler(async (req: Request, res: Response) => {
 
   consumable.quantity -= quantity;
   consumable.claimedQuantity = (consumable.claimedQuantity || 0) + quantity;
+  consumable.claimedBy = issuedBy; // Assign the issued by name
   await consumable.save();
 
   res.status(200).json({ message: 'Consumable claimed successfully', consumable });

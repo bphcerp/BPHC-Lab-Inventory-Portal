@@ -8,6 +8,7 @@ import Layout from './layouts/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import ConsumablesPage from './pages/ConsumablesPage'
 import OutPage from './pages/OutPage' // Import the new OUT page component
+import ConsumableHistoryPage from './pages/ConsumableHistory'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path='/consumables' element={<ConsumablesPage />} />
             <Route path='/out' element={<OutPage />} /> {/* New route for OUT page */}
+            <Route path='/history' element={<ConsumableHistoryPage />} />
           </Route>
           <Route path='/login' element={<LoginPage />} />
         </Routes>
