@@ -9,7 +9,7 @@ router.use(authenticateToken);
 // POST /api/consumable
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { consumableName, quantity, unitPrice, vendor, date, consumableCategory, categoryFields} = req.body;
+    const { consumableName, quantity, unitPrice, vendor, date, consumableCategory, categoryFields } = req.body;
 
     const consumable = new ConsumableModel({
       consumableName,
@@ -18,7 +18,7 @@ router.post('/', async (req: Request, res: Response) => {
       vendor,
       date,
       consumableCategory,
-      categoryFields,
+      categoryFields,  // Ensure categoryFields is correctly passed here
     });
 
     await consumable.save();
@@ -28,6 +28,7 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(400).json({ message: 'Error creating consumable: ' + (error as Error).message });
   }
 });
+
 
 // GET /api/consumable
 router.get('/', async (req: Request, res: Response) => {

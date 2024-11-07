@@ -36,7 +36,6 @@ ConsumableSchema.pre('save', async function (next) {
     this.totalCost = this.quantity * this.unitPrice;
   }
 
-  // Create a transaction log entry
   const transaction = new ConsumableTransactionModel({
     consumableName: this.consumableName,
     transactionQuantity: this.claimedQuantity,

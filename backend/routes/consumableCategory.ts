@@ -19,7 +19,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> 
 
 // POST /api/consumable-category - Create a new consumable category
 router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { name } = req.body;
+  const { name, fields } = req.body;
 
   if (!name) {
     res.status(400).json({ message: 'Name is required' });
@@ -32,10 +32,14 @@ router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void>
     return;
   }
 
-  const newCategory = new ConsumableCategoryModel({ name });
+  const newCategory = new ConsumableCategoryModel({
+    name,
+    fields: fields || [], // Accept fields array from request body
+  });
+  
   await newCategory.save();
-
   res.status(201).json(newCategory);
 }));
+
 
 export default router;

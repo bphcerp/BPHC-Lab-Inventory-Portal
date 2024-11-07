@@ -39,11 +39,11 @@ app.use('/api/consumable',historyRoutes);
 app.use(express.static("public"));
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('Welcome to BITS PILANI Inventory System API');
+  res.send('Welcome to LAMBDA Inventory System API');
 });
 
 app.get('/api/check-auth', authenticateToken, (req: Request, res: Response) => {
-  res.send('Welcome to BITS PILANI Inventory System API (Authenticated)');
+  res.send('Welcome to LAMBDA Inventory System API (Authenticated)');
 });
 
 app.listen(PORT, () => {
