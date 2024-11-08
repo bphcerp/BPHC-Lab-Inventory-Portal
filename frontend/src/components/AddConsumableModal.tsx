@@ -51,18 +51,10 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   const [categoryFields, setCategoryFields] = useState<any[]>([]);
   const [categoryFieldValues, setCategoryFieldValues] = useState<{ [key: string]: any }>({});
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    };
-  };
-
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category`, {
-        headers: getAuthHeaders(),
+        credentials: 'include',
       });
       const data = await response.json();
       setCategories(data);
