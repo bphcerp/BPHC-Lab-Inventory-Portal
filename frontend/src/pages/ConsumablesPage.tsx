@@ -109,7 +109,7 @@ const ConsumablesPage: React.FC = () => {
                     {typeof consumable.vendor === 'string' ? consumable.vendor : consumable.vendor?.name}
                   </td>
                   <td className="py-3 px-4 text-gray-800">
-                     {consumable.consumableCategory?.name || 'N/A'}
+                     {consumable?.categoryName || 'N/A'}
                   </td>
                 </tr>
               ))
