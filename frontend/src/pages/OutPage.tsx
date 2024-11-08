@@ -18,19 +18,13 @@ const OutPage: React.FC = () => {
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
 
   const fetchConsumables = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      toastError("You are not logged in. Please log in to continue.");
-      return;
-    }
 
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'include',
         },
       });
 
