@@ -1,5 +1,3 @@
-import { HiChartPie } from "react-icons/hi";
-import { IoCashOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineInventory } from "react-icons/md";
 import { FaSignOutAlt } from "react-icons/fa"; // Import new icon for OUT page
