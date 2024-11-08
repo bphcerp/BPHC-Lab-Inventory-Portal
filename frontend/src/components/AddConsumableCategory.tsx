@@ -35,7 +35,6 @@ const AddConsumableCategoryModal: React.FC<AddConsumableCategoryModalProps> = ({
         try {
             await onAddCategory(categoryName, fields);
             onClose();
-            onCategoryAdded();
         } catch (error) {
             console.error(error);
         } finally {
