@@ -63,16 +63,7 @@ const SignInUpPane = () => {
             if (response.status === 401) {
                 toastWarn("Wrong Credentials");
             } else if (response.status === 200) {
-                const data = await response.json();
-                const token = data.token;
-
-                if (token) {
-                    localStorage.setItem("token", token); // Save token to localStorage
-                    console.log("Token saved:", token);
-                    navigate("/consumables");
-                } else {
-                    toastError("Login successful, but no token received");
-                }
+                navigate("/consumables")
             } else if (response.status === 404) {
                 toastError("User not found");
             } else {
