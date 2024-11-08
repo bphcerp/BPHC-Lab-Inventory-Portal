@@ -15,21 +15,14 @@ const ConsumablesHistoryPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const fetchHistory = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            toastError("You are not logged in. Please log in to continue.");
-            setError("Authentication error.");
-            setLoading(false);
-            return;
-        }
 
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable/history`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
                 },
+                credentials: 'include',
             });
 
             if (!response.ok) {
