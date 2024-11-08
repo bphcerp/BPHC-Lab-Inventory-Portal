@@ -376,7 +376,7 @@ const renderStep2 = () => (
         <h3 className="text-lg font-medium mb-4">Category-specific Fields</h3>
         {categoryFields.map((field: { name: string | number; type: string; }) => (
             <div key={field.name}>
-                <Label htmlFor={field.name} value={`${field.name} *`} />
+                <Label htmlFor={String(field.name)} value={`${field.name} *`} />
                 <TextInput
                     id={field.name}
                     type={field.type === 'integer' ? 'number' : 'text'}
