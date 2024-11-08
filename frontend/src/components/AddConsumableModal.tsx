@@ -299,7 +299,7 @@ const handleSubmit = async () => {
         <TextInput
           id="quantity"
           type="number"
-          value={quantity}
+          value={String(quantity)}
           onChange={(e: { target: { value: any; }; }) => setQuantity(e.target.value)}
           required
           className="mt-1"
@@ -311,7 +311,7 @@ const handleSubmit = async () => {
         <TextInput
           id="unitPrice"
           type="number"
-          value={unitPrice}
+          value={String(unitPrice)}
           onChange={(e: { target: { value: any; }; }) => setUnitPrice(e.target.value)}
           required
           className="mt-1"
@@ -362,7 +362,7 @@ const handleSubmit = async () => {
         <TextInput
           id="totalCost"
           type="number"
-          value={totalCost}
+          value={String(totalCost)}
           disabled
           className="mt-1"
         />
