@@ -56,14 +56,16 @@ router.post('/login', async (req: Request, res: Response) => {
             httpOnly: true,
             sameSite: process.env.DEPLOYED_STATUS === "true" ? "none" : "lax",
         });
-        
-        // Send token in response body
-        res.status(200).json({ message: "Login Successful", token });
+
+        // Send response only with a success message (no token in the body)
+        res.status(200).json({ message: "Login Successful" });
+
     } catch (error) {
         console.error(error);
         res.status(403).json({ message: "Invalid Credentials" });
     }
 });
+
 
 router.post('/passlogin', async (req: Request, res: Response) => {
     const { email, pwd } = req.body;
