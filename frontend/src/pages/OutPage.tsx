@@ -23,9 +23,9 @@ const OutPage: React.FC = () => {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable`, {
         method: 'GET',
         headers: {
-          headers: {'Content-Type': 'application/json'},
-          credentials: 'include',
+          'Content-Type': 'application/json'
         },
+          credentials: 'include',
       });
 
       if (!response.ok) {
