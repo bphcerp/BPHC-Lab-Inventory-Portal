@@ -19,18 +19,12 @@ const ConsumablesPage: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    };
-  };
-
+  
   const fetchConsumables = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable`, { 
-        headers: getAuthHeaders(),
+         headers: {'Content-Type': 'application/json'},
+         credentials: 'include',
       });
       
       if (!response.ok) {
@@ -57,7 +51,8 @@ const ConsumablesPage: React.FC = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
         body: JSON.stringify(newConsumable),
       });
 
