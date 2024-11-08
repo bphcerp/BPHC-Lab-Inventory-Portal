@@ -23,7 +23,10 @@ const SignInUpPane = () => {
                 toastWarn("Wrong Credentials");
             } else if (response.status === 404) {
                 toastError("User not found");
-            } else {
+            }else if (response.status === 200) {
+                navigate("/consumables");
+            } 
+            else {
                 toastError("Something went wrong");
             }
         } catch (error) {
