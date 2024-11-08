@@ -25,13 +25,6 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
       return;
     }
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      toastError("You are not logged in. Please log in to continue.");
-      return;
-    }
-
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "");
       const url = `${backendUrl}/consumable/claim/${consumable._id}`;
@@ -41,8 +34,8 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({ quantity: Number(claimQuantity), issuedBy }),
       });
 
