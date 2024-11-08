@@ -21,9 +21,6 @@ const SignInUpPane = () => {
 
             if (response.status === 401) {
                 toastWarn("Wrong Credentials");
-            } else if (response.status === 200) {
-                const data = await response.json();
-                
             } else if (response.status === 404) {
                 toastError("User not found");
             } else {
