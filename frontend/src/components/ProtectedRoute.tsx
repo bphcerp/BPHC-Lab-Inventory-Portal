@@ -11,18 +11,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ homePage, children }) =
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('authToken'); // Retrieve the token from storage
-      if (!token) {
-        setIsAuthenticated(false);
-        return;
-      }
+      
 
       try {
         const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/check-auth`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`, // Include the token in the request headers
-          },
           credentials: 'include',
         });
 
