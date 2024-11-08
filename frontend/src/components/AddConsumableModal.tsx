@@ -67,7 +67,8 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   const fetchVendors = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
-        headers: getAuthHeaders(),
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
       });
       const data = await response.json();
       setVendors(data);
@@ -87,7 +88,8 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
         body: JSON.stringify({ name, type: 'consumable', fields }),
       });
 
@@ -110,7 +112,8 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
         body: JSON.stringify({ name }),
       });
 
