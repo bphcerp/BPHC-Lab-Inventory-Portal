@@ -378,9 +378,9 @@ const renderStep2 = () => (
             <div key={field.name}>
                 <Label htmlFor={String(field.name)} value={`${field.name} *`} />
                 <TextInput
-                    id={field.name}
+                    id={String(field.name)}
                     type={field.type === 'integer' ? 'number' : 'text'}
-                    value={categoryFieldValues[field.name] || ''}
+                    value={(categoryFieldValues[field.name] ?? '').toString()}
                     onChange={(e: { target: { value: string; }; }) => {
                         const value = field.type === 'integer' 
                             ? e.target.value === '' ? '' : parseInt(e.target.value, 10)
