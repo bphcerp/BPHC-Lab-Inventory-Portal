@@ -6,12 +6,14 @@ import AddConsumableModal from '../components/AddConsumableModal';
 export interface Consumable {
   _id: string;
   consumableName: string;
+  referenceNumber: string;
   quantity: number;
   unitPrice: number;
+  addedBy: string;
   vendor: { name: string } | string;
-  category: {
+  consumableCategory: {
     _id: string;
-    categoryName: string;
+    name: string;
   };
 }
 
@@ -91,6 +93,7 @@ const ConsumablesPage: React.FC = () => {
               <th className="py-3 px-4">Unit Price</th>
               <th className="py-3 px-4">Vendor</th>
               <th className="py-3 px-4">Category</th>
+              <th className="py-3 px-4">Reference Number</th>
             </tr>
           </thead>
           <tbody>
@@ -104,8 +107,9 @@ const ConsumablesPage: React.FC = () => {
                     {typeof consumable.vendor === 'string' ? consumable.vendor : consumable.vendor?.name}
                   </td>
                   <td className="py-3 px-4 text-gray-800">
-                     {consumable.category?.categoryName || 'N/A'}
+                     {consumable.consumableCategory?.name || 'N/A'}
                   </td>
+                  <td className="py-3 px-4 text-gray-800">{consumable.referenceNumber}</td>
                 </tr>
               ))
             ) : (
