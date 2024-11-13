@@ -9,8 +9,10 @@ import userRoutes from './routes/user';
 import consumableCategoryRoutes from './routes/consumableCategory';
 import consumableRoutes from './routes/consumable';
 import vendorRoutes from './routes/vendor';
+import peopleRoutes from './routes/people';
 import outRoutes from './routes/out';
 import historyRoutes from './routes/history';
+import transactionRoutes from './routes/transactionsByPerson';
 import { authenticateToken } from './middleware/authenticateToken';
 
 dotenv.config();
@@ -35,7 +37,9 @@ app.use('/api/consumable', consumableRoutes); // Main consumable routes
 app.use('/api/consumable', outRoutes); // Mounting out routes at the same base URL as consumable
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/category', consumableCategoryRoutes);
-app.use('/api/consumable',historyRoutes);
+app.use('/api/history',historyRoutes);
+app.use('/api/transactions',transactionRoutes);
+app.use('/api/people',peopleRoutes);
 app.use(express.static("public"));
 
 app.get('/', (req: Request, res: Response) => {
