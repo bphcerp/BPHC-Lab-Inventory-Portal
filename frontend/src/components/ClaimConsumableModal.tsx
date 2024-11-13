@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
-import { Button, Modal, Label, TextInput } from 'flowbite-react';
+import React, { useState, useEffect } from 'react';
+import { Button, Modal, Label, TextInput, Select } from 'flowbite-react';
 import { toastError, toastSuccess } from '../toasts';
 
 interface Consumable {
   _id: string;
   consumableName: string;
   quantity: number;
+}
+
+interface Person {
+  _id: string;
+  name: string;
 }
 
 interface ClaimConsumableModalProps {
@@ -15,41 +20,134 @@ interface ClaimConsumableModalProps {
   onClaimSuccess: () => void;
 }
 
-const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onClose, consumable, onClaimSuccess }) => {
+const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
+  isOpen,
+  onClose,
+  consumable,
+  onClaimSuccess,
+}) => {
   const [claimQuantity, setClaimQuantity] = useState<number | string>('');
   const [issuedBy, setIssuedBy] = useState<string>('');
+  const [issuedTo, setIssuedTo] = useState<string>('');
+  const [people, setPeople] = useState<Array<Person>>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleClaimConsumable = async () => {
-    if (!consumable || !claimQuantity || Number(claimQuantity) <= 0 || !issuedBy.trim()) {
-      toastError("Please enter a valid claim quantity and issued by name.");
-      return;
+  useEffect(() => {
+    if (isOpen) {
+      setClaimQuantity('');
+      setIssuedBy('');
+      setIssuedTo('');
+      fetchPeople();
     }
+  }, [isOpen]);
 
+  const fetchPeople = async () => {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "");
-      const url = `${backendUrl}/consumable/claim/${consumable._id}`;
-      console.log("Claim URL:", url);
+      const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
+      const apiUrl = `${baseUrl}/people`;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
+      console.log('Fetching people from:', apiUrl); // Debug log
+
+      const response = await fetch(apiUrl, {
+        headers: { 
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({ quantity: Number(claimQuantity), issuedBy }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error("Error claiming consumable.");
+        console.error('Response status:', response.status);
+        console.error('Response text:', errorText);
+        throw new Error(`Failed to fetch people list: ${response.status}`);
       }
 
-      toastSuccess("Consumable claimed successfully");
-      onClaimSuccess();
+      const data = await response.json();
+      setPeople(data);
     } catch (error) {
-      toastError("Error claiming consumable: " + (error as Error).message);
-      console.error("Error claiming consumable:", error);
+      toastError('Error fetching people list');
+      console.error('Error fetching people:', error);
+    }
+  };
+
+  const validateForm = () => {
+    if (!consumable) {
+      toastError('No consumable selected');
+      return false;
+    }
+
+    const quantity = Number(claimQuantity);
+    if (!quantity || quantity <= 0) {
+      toastError('Please enter a valid quantity');
+      return false;
+    }
+
+    if (quantity > consumable.quantity) {
+      toastError('Requested quantity exceeds available quantity');
+      return false;
+    }
+
+    if (!issuedBy.trim()) {
+      toastError('Please select who is issuing the consumable');
+      return false;
+    }
+
+    if (!issuedTo.trim()) {
+      toastError('Please select who is receiving the consumable');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleClaimConsumable = async () => {
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    try {
+      const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
+      const apiUrl = `${baseUrl}/consumable/claim/${consumable?._id}`;
+
+      console.log('Claiming consumable at:', apiUrl); // Debug log
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          quantity: Number(claimQuantity),
+          issuedBy,
+          issuedTo,
+        }),
+      });
+
+      // If response is not JSON, get the text content for debugging
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Received non-JSON response:', textResponse);
+        throw new Error('Received non-JSON response from server');
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to claim consumable');
+      }
+
+      toastSuccess(data.message || 'Consumable claimed successfully');
+      onClaimSuccess();
+      onClose();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toastError(errorMessage);
+      console.error('Error claiming consumable:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -58,8 +156,13 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
       <Modal.Header>Claim Consumable</Modal.Header>
       <Modal.Body>
         <div className="space-y-4">
-          <p><strong>Consumable:</strong> {consumable?.consumableName}</p>
-          <p><strong>Available Quantity:</strong> {consumable?.quantity}</p>
+          <p>
+            <strong>Consumable:</strong> {consumable?.consumableName}
+          </p>
+          <p>
+            <strong>Available Quantity:</strong> {consumable?.quantity}
+          </p>
+          
           <div>
             <Label htmlFor="claimQuantity" value="Quantity to Claim" />
             <TextInput
@@ -67,26 +170,60 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({ isOpen, onC
               type="number"
               value={claimQuantity}
               onChange={(e) => setClaimQuantity(e.target.value)}
+              disabled={isSubmitting}
               required
+              min="1"
+              max={consumable?.quantity}
               className="mt-1"
             />
           </div>
+
           <div>
             <Label htmlFor="issuedBy" value="Issued By" />
-            <TextInput
+            <Select
               id="issuedBy"
-              type="text"
               value={issuedBy}
               onChange={(e) => setIssuedBy(e.target.value)}
+              disabled={isSubmitting}
               required
               className="mt-1"
-            />
+            >
+              <option value="">Select Person Issuing</option>
+              {people.map((person) => (
+                <option key={person._id} value={person._id}>
+                  {person.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="issuedTo" value="Issued To" />
+            <Select
+              id="issuedTo"
+              value={issuedTo}
+              onChange={(e) => setIssuedTo(e.target.value)}
+              disabled={isSubmitting}
+              required
+              className="mt-1"
+            >
+              <option value="">Select Person Receiving</option>
+              {people.map((person) => (
+                <option key={person._id} value={person._id}>
+                  {person.name}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
       </Modal.Body>
       <Modal.Footer>
-        <Button color="gray" onClick={onClose}>Cancel</Button>
-        <Button color="blue" onClick={handleClaimConsumable}>Claim</Button>
+        <Button color="gray" onClick={onClose} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button color="blue" onClick={handleClaimConsumable} disabled={isSubmitting}>
+          {isSubmitting ? 'Claiming...' : 'Claim'}
+        </Button>
       </Modal.Footer>
     </Modal>
   );
