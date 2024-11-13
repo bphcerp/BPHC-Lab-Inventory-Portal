@@ -8,6 +8,9 @@ import Layout from './layouts/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import ConsumablesPage from './pages/ConsumablesPage'
 import OutPage from './pages/OutPage' // Import the new OUT page component
+import AddVendorPage from './pages/AddVendorPage'
+import AddPeoplePage from './pages/AddPeoplePage'
+import AddCategoryTypePage from './pages/AddCategoryTypePage'
 import ConsumableHistoryPage from './pages/ConsumableHistory'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { ToastContainer } from 'react-toastify'
@@ -24,6 +27,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path='/consumables' element={<ConsumablesPage />} />
             <Route path='/out' element={<OutPage />} /> {/* New route for OUT page */}
             <Route path='/history' element={<ConsumableHistoryPage />} />
+            <Route path='/vendors' element={<AddVendorPage />} />
+            <Route path='/people' element={<AddPeoplePage />} />
+            <Route path='/category' element={<AddCategoryTypePage />} />
           </Route>
           <Route path='/login' element={<LoginPage />} />
         </Routes>
