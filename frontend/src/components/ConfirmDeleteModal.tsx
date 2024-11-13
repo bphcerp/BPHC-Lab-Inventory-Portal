@@ -15,7 +15,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     isOpen,
     onClose,
     onConfirm,
-    title,
+    //title,
     message,
     loading = false
 }) => {
