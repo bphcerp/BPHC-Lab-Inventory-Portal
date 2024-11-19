@@ -6,10 +6,9 @@ import ClaimConsumableModal from '../components/ClaimConsumableModal';
 interface Consumable {
   _id: string;
   consumableName: string;
-  quantity: number;
+  availableQuantity: number;
   unitPrice: number;
-  vendor: { name: string } | null;
-  consumableCategory: { name: string } | null;
+  categoryFields?: { [key: string]: any };
 }
 
 const OutPage: React.FC = () => {
@@ -67,15 +66,14 @@ const OutPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-semibold mb-8 text-center text-gray-900">Claim Consumable</h1>
+      <h1 className="text-3xl font-semibold mb-8 text-center text-gray-900">Issue Consumable</h1>
       {consumables.length > 0 ? (
           <table className="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
             <thead>
               <tr className="bg-gray-100 text-gray-600 uppercase text-sm font-semibold">
                 <th className="py-3 px-4 border-b border-gray-200 text-left">Name</th>
                 <th className="py-3 px-4 border-b border-gray-200 text-left">Available</th>
-                <th className="py-3 px-4 border-b border-gray-200 text-left">Vendor</th>
-                <th className="py-3 px-4 border-b border-gray-200 text-left">Category</th>
+                <th className="py-3 px-4 border-b border-gray-200 text-left">Description</th>
                 <th className="py-3 px-4 border-b border-gray-200 text-center">Actions</th>
               </tr>
             </thead>
@@ -86,16 +84,25 @@ const OutPage: React.FC = () => {
                   className={`hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                 >
                   <td className="py-2 px-4 border-b border-gray-200 text-gray-700 text-sm">{consumable.consumableName}</td>
-                  <td className="py-2 px-4 border-b border-gray-200 text-gray-700 text-sm">{consumable.quantity}</td>
-                  <td className="py-2 px-4 border-b border-gray-200 text-gray-700 text-sm">{consumable.vendor?.name || 'N/A'}</td>
-                  <td className="py-2 px-4 border-b border-gray-200 text-gray-700 text-sm">{consumable.consumableCategory?.name || 'N/A'}</td>
+                  <td className="py-2 px-4 border-b border-gray-200 text-gray-700 text-sm">{consumable.availableQuantity}</td>
+                 <td className="py-3 px-4 text-gray-800">
+                    {consumable.categoryFields && Object.keys(consumable.categoryFields).length > 0 ? (
+                      Object.entries(consumable.categoryFields).map(([key, value]) => (
+                        <div key={`${key}-${value}`}>
+                          <strong>{key}:</strong> {value}
+                        </div>
+                      ))
+                    ) : (
+                      <div>N/A</div>
+                    )}
+                  </td>
                   <td className="py-2 px-4 border-b border-gray-200 text-center flex justify-center items-center">
                     <Button
                       color="blue"
                       className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
                       onClick={() => openClaimModal(consumable)}
                     >
-                      Claim
+                      Issue
                     </Button>
                   </td>
                 </tr>
@@ -103,7 +110,7 @@ const OutPage: React.FC = () => {
             </tbody>
           </table>
       ) : (
-        <p className="text-center text-gray-600">No consumables available to claim.</p>
+        <p className="text-center text-gray-600">No consumables available to issue.</p>
       )}
 
       <ClaimConsumableModal 
