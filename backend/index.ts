@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-
+import transactionsByVendor from './routes/transactionsByVendor';
 import userRoutes from './routes/user';
 //import categoryRoutes from './routes/category';
 import consumableCategoryRoutes from './routes/consumableCategory';
@@ -43,6 +43,7 @@ app.use('/api/history',historyRoutes);
 app.use('/api/transactions',transactionRoutes);
 app.use('/api/people',peopleRoutes);
 app.use(express.static("public"));
+app.use('/api/transactions', transactionsByVendor);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Welcome to LAMBDA Inventory System API');
@@ -55,6 +56,7 @@ app.get('/api/check-auth', authenticateToken, (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
 
 function keepAlive() {
   fetch(url)
