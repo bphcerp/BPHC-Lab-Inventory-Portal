@@ -1,48 +1,67 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal, Button } from 'flowbite-react';
-import { HiOutlineExclamationCircle } from 'react-icons/hi';
+import { toastSuccess, toastError } from '../toasts';
 
 interface ConfirmDeleteModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: () => void;
-    title: string;
-    message: string;
-    loading?: boolean;
+    itemId: string;
+    itemName: string;
+    deleteEndpoint: string; // API endpoint for deletion
+    onItemDeleted: (itemId: string) => void; // Callback to update parent state
 }
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     isOpen,
     onClose,
-    onConfirm,
-    //title,
-    message,
-    loading = false
+    itemId,
+    itemName,
+    deleteEndpoint,
+    onItemDeleted,
 }) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleDelete = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/${deleteEndpoint}/${itemId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+            if (response.ok) {
+                toastSuccess(`Successfully deleted "${itemName}"`);
+                onItemDeleted(itemId);
+                onClose();
+            } else {
+                const error = await response.json();
+                setError(error.message || 'Failed to delete item');
+                toastError(error.message || 'Failed to delete item');
+            }
+        } catch (err) {
+            setError('An error occurred while deleting the item');
+            toastError('An error occurred while deleting the item');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <Modal show={isOpen} onClose={onClose} size="md" popup>
-            <Modal.Header />
+        <Modal show={isOpen} onClose={onClose}>
+            <Modal.Header>Confirm Deletion</Modal.Header>
             <Modal.Body>
-                <div className="text-center">
-                    <HiOutlineExclamationCircle className="mx-auto mb-4 h-14 w-14 text-gray-400 dark:text-gray-200" />
-                    <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-                        {message}
-                    </h3>
-                    <div className="flex justify-center gap-4">
-                        <Button
-                            color="failure"
-                            onClick={onConfirm}
-                            disabled={loading}
-                            isProcessing={loading}
-                        >
-                            {loading ? 'Deleting...' : 'Yes, delete'}
-                        </Button>
-                        <Button color="gray" onClick={onClose}>
-                            No, cancel
-                        </Button>
-                    </div>
-                </div>
+                <p>Are you sure you want to delete "{itemName}"?</p>
+                {error && <div className="text-red-500 mt-2">{error}</div>}
             </Modal.Body>
+            <Modal.Footer>
+                <Button color="failure" onClick={handleDelete} disabled={loading}>
+                    {loading ? 'Deleting...' : 'Confirm'}
+                </Button>
+                <Button color="gray" onClick={onClose}>
+                    Cancel
+                </Button>
+            </Modal.Footer>
         </Modal>
     );
 };
