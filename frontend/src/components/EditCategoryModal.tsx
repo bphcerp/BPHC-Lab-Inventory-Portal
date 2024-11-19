@@ -1,35 +1,67 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Button, Label, TextInput, Select } from 'flowbite-react';
+import { Modal, Button, Label, TextInput } from 'flowbite-react';
+import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import { toastError, toastSuccess } from '../toasts';
+
+interface Field {
+    name: string;
+    values: string[];
+}
+
+interface Category {
+    _id: string;
+    consumableName: string;
+    fields: Field[];
+}
 
 interface EditCategoryModalProps {
     isOpen: boolean;
     onClose: () => void;
-    category: {
-        _id: string;
-        name: string;
-        fields: { name: string; type: string }[];
-    };
-    onCategoryUpdate: (updatedCategory: { _id: string; name: string; fields: { name: string; type: string }[] }) => void;
+    category: Category;
+    onCategoryUpdate: (updatedCategory: Category) => void;
 }
 
-const EditCategoryModal: React.FC<EditCategoryModalProps> = ({ isOpen, onClose, category, onCategoryUpdate }) => {
-    const [name, setName] = useState(category.name);
-    const [fields, setFields] = useState<{ name: string; type: string }[]>(category.fields);
+const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
+    isOpen,
+    onClose,
+    category,
+    onCategoryUpdate
+}) => {
+    const [consumableName, setConsumableName] = useState(category.consumableName);
+    const [fields, setFields] = useState<Field[]>(category.fields);
     const [loading, setLoading] = useState(false);
 
-    const handleFieldChange = (index: number, field: Partial<{ name: string; type: string }>) => {
+    const handleFieldChange = (index: number, field: Partial<Field>) => {
         const updatedFields = [...fields];
-        updatedFields[index] = { ...updatedFields[index], ...field };
+        updatedFields[index] = {
+            ...updatedFields[index],
+            ...field,
+            values: field.values
+                ? field.values.map(v => v.trim()).filter(v => v !== '')
+                : updatedFields[index].values
+        };
         setFields(updatedFields);
     };
 
     const addField = () => {
-        setFields([...fields, { name: '', type: 'string' }]);
+        setFields([...fields, { name: '', values: [] }]);
+    };
+
+    const removeField = (index: number) => {
+        setFields(fields.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async () => {
-        if (!name.trim()) return;
+        if (!consumableName.trim()) return;
+
+        const validFields = fields.filter(field =>
+            field.name.trim() && field.values.length > 0
+        );
+
+        if (validFields.length === 0) {
+            toastError('Please add at least one field with values');
+            return;
+        }
 
         setLoading(true);
         try {
@@ -37,78 +69,108 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({ isOpen, onClose, 
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ name, fields }),
+                body: JSON.stringify({
+                    consumableName: consumableName.trim(),
+                    fields: validFields.map(field => ({
+                        name: field.name.trim(),
+                        values: field.values.map(v => v.trim())
+                    }))
+                }),
             });
 
-            if (response.ok) {
-                const updatedCategory = await response.json();
-                onCategoryUpdate(updatedCategory);
-                toastSuccess('Category updated successfully');
-                onClose();
-            } else {
-                toastError('Failed to update category');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update category');
             }
+
+            const updatedCategory = await response.json();
+            onCategoryUpdate(updatedCategory);
+            toastSuccess('Category updated successfully');
+            onClose();
         } catch (error) {
-            toastError('Error updating category');
+            toastError(error instanceof Error ? error.message : 'Error updating category');
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        setName(category.name);
+        setConsumableName(category.consumableName);
         setFields(category.fields);
     }, [category]);
 
     return (
         <Modal show={isOpen} onClose={onClose}>
-            <Modal.Header>Edit Category</Modal.Header>
+            <Modal.Header>Edit Consumable Category</Modal.Header>
             <Modal.Body>
                 <div className="space-y-4">
                     <div>
-                        <Label htmlFor="edit-category-name" value="Category Name" />
+                        <Label htmlFor="edit-consumable-name" value="Consumable Name" />
                         <TextInput
-                            id="edit-category-name"
+                            id="edit-consumable-name"
                             type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            value={consumableName}
+                            onChange={(e) => setConsumableName(e.target.value)}
                             required
                         />
                     </div>
                     <div>
-                        <Label value="Fields" />
+                        <Label value="Fields and Values" />
                         {fields.map((field, index) => (
-                            <div key={index} className="flex items-center space-x-4 mt-2">
+                            <div key={index} className="space-y-2 mt-2 p-3 border rounded">
+                                <div className="flex items-center gap-2">
+                                    <TextInput
+                                        placeholder="Field Name"
+                                        value={field.name}
+                                        onChange={(e) => handleFieldChange(index, { name: e.target.value })}
+                                        required
+                                        className="flex-1"
+                                    />
+                                    {fields.length > 1 && (
+                                        <Button
+                                            color="failure"
+                                            size="sm"
+                                            onClick={() => removeField(index)}
+                                        >
+                                            <FiTrash2 />
+                                        </Button>
+                                    )}
+                                </div>
                                 <TextInput
-                                    placeholder="Field Name"
-                                    value={field.name}
-                                    onChange={(e) => handleFieldChange(index, { name: e.target.value })}
+                                    placeholder="Enter values separated by commas"
+                                    value={field.values.join(', ')}
+                                    onChange={(e) => handleFieldChange(index, {
+                                        values: e.target.value.split(',')
+                                    })}
                                     required
-                                    className="flex-1"
                                 />
-                                <Select
-                                    value={field.type}
-                                    onChange={(e) => handleFieldChange(index, { type: e.target.value })}
-                                    required
-                                    className="w-32"
-                                >
-                                    <option value="string">String</option>
-                                    <option value="integer">Integer</option>
-                                </Select>
                             </div>
                         ))}
-                        <Button color="blue" onClick={addField} className="mt-3 flex items-center">
-                            + Add Field
+                        <Button
+                            color="blue"
+                            onClick={addField}
+                            className="mt-3 flex items-center"
+                        >
+                            <FiPlus className="mr-1" /> Add Field
                         </Button>
                     </div>
                 </div>
             </Modal.Body>
             <Modal.Footer>
-                <Button color="blue" onClick={handleSubmit} disabled={loading || !name} isProcessing={loading}>
-                    {loading ? 'Updating...' : 'Update Category'}
-                </Button>
-                <Button color="gray" onClick={onClose}>
+                <Button
+                    color="failure"
+                    onClick={onClose}
+                    disabled={loading}
+                >
                     Cancel
+                </Button>
+                <Button
+                    color="blue"
+                    onClick={handleSubmit}
+                    isProcessing={loading}
+                    disabled={loading || !consumableName.trim()}
+                >
+                    {loading ? 'Updating...' : 'Update Category'}
                 </Button>
             </Modal.Footer>
         </Modal>
