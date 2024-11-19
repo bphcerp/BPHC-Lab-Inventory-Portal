@@ -1,243 +1,278 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Label, TextInput, Textarea, Table, Pagination } from 'flowbite-react';
+import { Button, Label, TextInput, Table, Pagination } from 'flowbite-react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
-import VendorDetails from './VendorDetails';
 import EditVendorModal from '../components/EditVendorModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import AddVendorModal from '../components/AddVendorModal';
+import VendorDetailsModal from '../components/VendorDetailsModal'; // Import the VendorDetailsModal
+
+interface Vendor {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
 
 const AddVendorPage: React.FC = () => {
-    const [name, setName] = useState<string>('');
-    const [comment, setComment] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
-    const [vendors, setVendors] = useState<{ _id: string; name: string; comment?: string }[]>([]);
-    const [selectedVendor, setSelectedVendor] = useState<{ id: string; name: string } | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [editingVendor, setEditingVendor] = useState<{ _id: string; name: string; comment?: string } | null>(null);
-    const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
-    const [deleteLoading, setDeleteLoading] = useState(false);
-    const itemsPerPage = 10;
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [isAddVendorModalOpen, setIsAddVendorModalOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null); // State for selected vendor
+  const [vendorConsumables, setVendorConsumables] = useState([]); // State for vendor consumables
+  const [isVendorDetailsModalOpen, setIsVendorDetailsModalOpen] = useState(false); // State for VendorDetailsModal
+  const itemsPerPage = 10;
+  const [vendorStats, setVendorStats] = useState<VendorStats | undefined>(undefined);
 
-    const fetchVendors = async () => {
-        try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, { 
-                credentials: 'include' 
-            });
-            const data = await response.json();
-            setVendors(data);
-        } catch (error) {
-            toastError('Failed to fetch vendors');
-        }
-    };
+  interface VendorStats {
+    totalTransactions: number;
+    totalSpent: number;
+    uniqueItems: number;
+    mostRecentTransaction: string;
+    oldestTransaction: string;
+  }
 
-    const handleAddVendor = async () => {
-        if (!name.trim()) return;
-        setLoading(true);
-        try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ name, comment }),
-            });
-            if (response.ok) {
-                const newVendor = await response.json();
-                setVendors((prev) => [...prev, newVendor]);
-                setName('');
-                setComment('');
-                toastSuccess('Vendor added successfully');
-            } else {
-                toastError('Vendor already exists or other error');
-            }
-        } catch (error) {
-            toastError('Error adding vendor');
-        } finally {
-            setLoading(false);
-        }
-    };
+  const fetchVendors = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
+        credentials: 'include',
+      });
+      const data = await response.json();
+      setVendors(data);
+      setFilteredVendors(data);
+    } catch (error) {
+      toastError('Failed to fetch vendors');
+    }
+  };
 
-    const handleVendorClick = (vendorId: string, vendorName: string) => {
-        setSelectedVendor({ id: vendorId, name: vendorName });
-    };
+  const fetchVendorConsumables = async (vendorId: string) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/transactions/vendor/${vendorId}`,
+        { credentials: 'include' }
+      );
+      const data = await response.json();
+      setVendorConsumables(data.transactions);
+      setVendorStats(data.stats);
+    } catch (error) {
+      toastError('Failed to fetch vendor consumables');
+    }
+  };
+  
+  
 
-    const handleDeleteVendor = async () => {
-        if (!deletingVendor) return;
-        
-        setDeleteLoading(true);
-        try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor/${deletingVendor._id}`, {
-                method: 'DELETE',
-                credentials: 'include',
-            });
+  const handleVendorClick = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    fetchVendorConsumables(vendor._id); // Fetch consumables for the selected vendor
+    setIsVendorDetailsModalOpen(true);
+  };
 
-            if (response.ok) {
-                setVendors((prev) => prev.filter(v => v._id !== deletingVendor._id));
-                toastSuccess('Vendor deleted successfully');
-                setDeletingVendor(null);
-            } else {
-                toastError('Failed to delete vendor');
-            }
-        } catch (error) {
-            toastError('Error deleting vendor');
-        } finally {
-            setDeleteLoading(false);
-        }
-    };
+  const closeVendorDetailsModal = () => {
+    setIsVendorDetailsModalOpen(false);
+    setSelectedVendor(null);
+    setVendorConsumables([]);
+    setVendorStats(undefined); // Add this line to reset stats
+  };
 
-    const handleVendorUpdate = (updatedVendor: { _id: string; name: string; comment?: string }) => {
-        setVendors(prev => 
-            prev.map(vendor => 
-                vendor._id === updatedVendor._id ? updatedVendor : vendor
-            )
+  const addNewVendor = async (vendor: { name: string; phone: string; email: string }) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(vendor),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        toastError(errorData.message || 'Failed to add vendor');
+        return;
+      }
+
+      const newVendor = await response.json();
+      handleVendorAdded(newVendor);
+      toastSuccess('Vendor added successfully');
+    } catch (error) {
+      console.error(error);
+      toastError('Error adding vendor');
+    }
+  };
+
+  const handleAddVendor = () => {
+    setIsAddVendorModalOpen(true);
+  };
+
+  const handleVendorAdded = (newVendor: Vendor) => {
+    setVendors((prev) => [...prev, newVendor]);
+    setFilteredVendors((prev) => [...prev, newVendor]);
+    setIsAddVendorModalOpen(false);
+  };
+
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const searchTerm = event.target.value.toLowerCase();
+    setSearchText(searchTerm);
+
+    setFilteredVendors(
+      vendors.filter((vendor) => {
+        const name = vendor.name?.toLowerCase() || ''; // Safely handle undefined
+        const email = vendor.email?.toLowerCase() || '';
+        const phone = vendor.phone?.toLowerCase() || '';
+
+        return (
+          name.includes(searchTerm) ||
+          email.includes(searchTerm) ||
+          phone.includes(searchTerm)
         );
-    };
-
-    useEffect(() => {
-        fetchVendors();
-    }, []);
-
-    const totalPages = Math.ceil(vendors.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const currentVendors = vendors.slice(startIndex, endIndex);
-
-    return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Add Vendor</h1>
-            
-            {/* Vendor Form Section */}
-            <div className="flex flex-col items-center mb-6">
-                <div className="flex gap-4 max-w-4xl w-full">
-                    <div className="flex-1">
-                        <Label htmlFor="name" value="Vendor Name" />
-                        <TextInput
-                            id="name"
-                            type="text"
-                            placeholder="Enter vendor name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="flex-1">
-                        <Label htmlFor="comment" value="Comment" />
-                        <Textarea
-                            id="comment"
-                            placeholder="Additional comments"
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            rows={1}
-                        />
-                    </div>
-                </div>
-
-                <Button 
-                    color="blue"
-                    onClick={handleAddVendor} 
-                    disabled={loading || !name}
-                    isProcessing={loading}
-                    className="w-32 mt-4"
-                >
-                    {loading ? 'Adding...' : 'Add Vendor'}
-                </Button>
-            </div>
-
-            {/* Vendors Table Section */}
-            <div className="max-w-7xl mx-auto mb-6">
-                <Table striped className="w-full">
-                    <Table.Head>
-                        <Table.HeadCell className="text-center">Name</Table.HeadCell>
-                        <Table.HeadCell className="text-center">Comment</Table.HeadCell>
-                        <Table.HeadCell className="text-center">Operations</Table.HeadCell>
-                    </Table.Head>
-                    <Table.Body>
-                        {currentVendors.length > 0 ? (
-                            currentVendors.map((vendor) => (
-                                <Table.Row key={vendor._id}>
-                                    <Table.Cell 
-                                        className="cursor-pointer text-center"
-                                        onClick={() => handleVendorClick(vendor._id, vendor.name)}
-                                    >
-                                        {vendor.name}
-                                    </Table.Cell>
-                                    <Table.Cell className="text-center">{vendor.comment || 'N/A'}</Table.Cell>
-                                    <Table.Cell className="text-center">
-                                        <div className="flex justify-center gap-3">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingVendor(vendor);
-                                                }}
-                                                className="text-blue-600 hover:text-blue-800"
-                                            >
-                                                <FaEdit size={14} />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDeletingVendor(vendor);
-                                                }}
-                                                className="text-red-600 hover:text-red-800"
-                                            >
-                                                <FaTrash size={14} />
-                                            </button>
-                                        </div>
-                                    </Table.Cell>
-                                </Table.Row>
-                            ))
-                        ) : (
-                            <Table.Row>
-                                <Table.Cell colSpan={3} className="text-center">
-                                    No vendors found.
-                                </Table.Cell>
-                            </Table.Row>
-                        )}
-                    </Table.Body>
-                </Table>
-
-                {totalPages > 1 && (
-                    <div className="flex justify-center mt-4">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setCurrentPage}
-                            showIcons
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Modals */}
-            {selectedVendor && (
-                <VendorDetails
-                    vendorId={selectedVendor.id}
-                    vendorName={selectedVendor.name}
-                    isOpen={!!selectedVendor}
-                    onClose={() => setSelectedVendor(null)}
-                />
-            )}
-
-            {editingVendor && (
-                <EditVendorModal
-                    isOpen={!!editingVendor}
-                    onClose={() => setEditingVendor(null)}
-                    vendor={editingVendor}
-                    onVendorUpdate={handleVendorUpdate}
-                />
-            )}
-
-            {deletingVendor && (
-                <ConfirmDeleteModal
-                    isOpen={!!deletingVendor}
-                    onClose={() => setDeletingVendor(null)}
-                    onConfirm={handleDeleteVendor}
-                    title="Delete Vendor"
-                    message={`Are you sure you want to delete vendor "${deletingVendor.name}"?`}
-                    loading={deleteLoading}
-                />
-            )}
-        </div>
+      })
     );
+
+    if (!searchTerm.trim()) {
+      setFilteredVendors(vendors); // Reset to original list if search is cleared
+    }
+
+    setCurrentPage(1); // Reset to the first page when searching
+  };
+
+  useEffect(() => {
+    fetchVendors();
+  }, []);
+
+  const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentVendors = filteredVendors.slice(startIndex, endIndex);
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Add Vendor</h1>
+
+      
+      {/* Add Vendor Button */}
+      <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
+        <Button color="blue" onClick={handleAddVendor}>
+          Add Vendor
+        </Button>
+        <TextInput
+          id="search"
+          value={searchText}
+          onChange={handleSearch}
+          placeholder="Search by name, email, or phone"
+          className="w-full max-w-xs"
+        />
+      </div>
+
+      {/* Vendors Table Section */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <Table striped className="w-full">
+          <Table.Head>
+            <Table.HeadCell className="text-center">Name</Table.HeadCell>
+            <Table.HeadCell className="text-center">Email</Table.HeadCell>
+            <Table.HeadCell className="text-center">Phone</Table.HeadCell>
+            <Table.HeadCell className="text-center">Operations</Table.HeadCell>
+          </Table.Head>
+          <Table.Body>
+            {currentVendors.length > 0 ? (
+              currentVendors.map((vendor) => (
+                <Table.Row key={vendor._id}>
+                  <Table.Cell
+                    onClick={() => handleVendorClick(vendor)}
+                    className="cursor-pointer text-center text-blue-600 hover:text-blue-800"
+                  >
+                    {vendor.name}
+                  </Table.Cell>
+                  <Table.Cell className="text-center">{vendor.email}</Table.Cell>
+                  <Table.Cell className="text-center">{vendor.phone}</Table.Cell>
+                  <Table.Cell className="text-center">
+                    <div className="flex justify-center gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingVendor(vendor);
+                        }}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <FaEdit size={14} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingVendor(vendor);
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              ))
+            ) : (
+              <Table.Row>
+                <Table.Cell colSpan={4} className="text-center">
+                  No vendors found.
+                </Table.Cell>
+              </Table.Row>
+            )}
+          </Table.Body>
+        </Table>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showIcons
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      {editingVendor && (
+        <EditVendorModal
+          isOpen={!!editingVendor}
+          onClose={() => setEditingVendor(null)}
+          vendor={editingVendor}
+          onVendorUpdate={handleVendorAdded}
+        />
+      )}
+
+      {deletingVendor && (
+        <ConfirmDeleteModal
+          isOpen={!!deletingVendor}
+          onClose={() => setDeletingVendor(null)}
+          onConfirm={() => {} /* handleDeleteVendor */}
+          title="Delete Vendor"
+          message={`Are you sure you want to delete vendor "${deletingVendor.name}"?`}
+          loading={deleteLoading}
+        />
+      )}
+
+      <AddVendorModal
+        isOpen={isAddVendorModalOpen}
+        onClose={() => setIsAddVendorModalOpen(false)}
+        onAddVendor={addNewVendor}
+      />
+
+      {selectedVendor && (
+        <VendorDetailsModal
+          isOpen={isVendorDetailsModalOpen}
+          onClose={closeVendorDetailsModal}
+          vendorName={selectedVendor.name}
+          consumables={vendorConsumables}
+          stats={vendorStats} 
+        />
+      )}
+    </div>
+  );
 };
 
 export default AddVendorPage;
