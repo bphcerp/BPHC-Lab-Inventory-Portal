@@ -18,7 +18,10 @@ interface Consumable {
   unitPrice: number;
   totalCost: number;
   date: string;
-  comments: Comment[];
+  vendor?: {
+    name: string;
+  };
+  comments?: Comment[];
 }
 
 interface VendorStats {
