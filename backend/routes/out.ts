@@ -5,11 +5,35 @@ import { PeopleModel } from '../models/people';
 import { authenticateToken } from '../middleware/authenticateToken';
 
 const router = express.Router();
-router.use(authenticateToken);
-
 // Utility function for async error handling
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler =>
   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+// Utility function to generate reference number
+async function generateReferenceNumber() {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const nextYear = currentDate.getMonth() >= 3 ? currentYear + 1 : currentYear;
+  const financialYear = `${currentYear}-${nextYear.toString().slice(2)}`;
+  
+  // Get the latest transaction count for the current financial year
+  const latestTransaction = await ConsumableTransactionModel
+    .findOne({
+      referenceNumber: new RegExp(`BITS/UTIL/${financialYear}/`)
+    })
+    .sort({ referenceNumber: -1 });
+
+  let nextNumber = 1;
+  if (latestTransaction) {
+    const lastNumber = parseInt(latestTransaction.referenceNumber.split('/').pop() || '0');
+    nextNumber = lastNumber + 1;
+  }
+
+  return `BITS/UTIL/${financialYear}/${nextNumber.toString().padStart(4, '0')}`;
+}
+
+router.use(authenticateToken);
+
 
 // POST /api/consumable/claim/:id - Claim a consumable
 router.post(
@@ -54,14 +78,22 @@ router.post(
       return;
     }
 
+    if (quantity > consumable.quantity - consumable.claimedQuantity) {
+      res.status(400).json({ message: 'Not enough available quantity.' });
+      return;
+    }
+
     try {
+      // Generate reference number
+      const referenceNumber = await generateReferenceNumber();
+
       // Update consumable quantities
       const updatedConsumable = await ConsumableModel.findByIdAndUpdate(
         consumableId,
         {
           $inc: { 
-            quantity: -quantity,
-            claimedQuantity: quantity 
+            //quantity: -quantity,
+            claimedQuantity: +quantity 
           }
         },
         { new: true }
@@ -72,13 +104,16 @@ router.post(
         return;
       }
 
-      // Create transaction record with all involved people
+      // Create transaction record with reference number
       const transaction = new ConsumableTransactionModel({
         consumableName: consumable.consumableName,
         transactionQuantity: quantity,
-        remainingQuantity: updatedConsumable.quantity,
+        remainingQuantity: consumable.quantity - updatedConsumable.claimedQuantity,
+        categoryFields: consumable.categoryFields,
+        referenceNumber,
         issuedBy,
-        issuedTo
+        issuedTo,
+        transactionType: 'ISSUE'
       });
 
       await transaction.save();
