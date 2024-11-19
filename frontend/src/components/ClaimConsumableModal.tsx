@@ -5,7 +5,8 @@ import { toastError, toastSuccess } from '../toasts';
 interface Consumable {
   _id: string;
   consumableName: string;
-  quantity: number;
+  categoryFields?: { [key: string]: any };
+  availableQuantity: number;
 }
 
 interface Person {
@@ -83,7 +84,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       return false;
     }
 
-    if (quantity > consumable.quantity) {
+    if (quantity > consumable.availableQuantity) {
       toastError('Requested quantity exceeds available quantity');
       return false;
     }
@@ -153,18 +154,31 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
 
   return (
     <Modal show={isOpen} onClose={onClose} size="lg">
-      <Modal.Header>Claim Consumable</Modal.Header>
+      <Modal.Header>Issue Consumable</Modal.Header>
       <Modal.Body>
         <div className="space-y-4">
           <p>
             <strong>Consumable:</strong> {consumable?.consumableName}
           </p>
           <p>
-            <strong>Available Quantity:</strong> {consumable?.quantity}
+            <strong>Available Quantity:</strong> {consumable?.availableQuantity}
           </p>
-          
           <div>
-            <Label htmlFor="claimQuantity" value="Quantity to Claim" />
+    <strong>Category Details:</strong>
+    {consumable?.categoryFields && Object.keys(consumable.categoryFields).length > 0 ? (
+      <ul className="ml-4 list-disc">
+        {Object.entries(consumable.categoryFields).map(([key, value]) => (
+          <li key={key}>
+            <strong>{key}:</strong> {String(value)}
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p>No category details available.</p>
+    )}
+  </div>
+          <div>
+            <Label htmlFor="claimQuantity" value="Quantity to Issue" />
             <TextInput
               id="claimQuantity"
               type="number"
@@ -173,7 +187,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
               disabled={isSubmitting}
               required
               min="1"
-              max={consumable?.quantity}
+              max={consumable?.availableQuantity}
               className="mt-1"
             />
           </div>
@@ -222,7 +236,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
           Cancel
         </Button>
         <Button color="blue" onClick={handleClaimConsumable} disabled={isSubmitting}>
-          {isSubmitting ? 'Claiming...' : 'Claim'}
+          {isSubmitting ? 'Claiming...' : 'Issue'}
         </Button>
       </Modal.Footer>
     </Modal>
