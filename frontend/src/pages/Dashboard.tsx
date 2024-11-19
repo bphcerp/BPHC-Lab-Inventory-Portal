@@ -17,7 +17,7 @@ export interface Consumable {
 
 const Dashboard: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
-  const [searchText, setSearchText] = useState('');
+  const [searchText] = useState('');
 
   const fetchConsumables = async () => {
     try {
