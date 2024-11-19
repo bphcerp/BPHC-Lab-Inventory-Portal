@@ -1,5 +1,5 @@
-import { Button, Modal, Label, TextInput, Select } from 'flowbite-react';
 import React, { useEffect, useState } from 'react';
+import { Button, Modal, Label, TextInput, Select } from 'flowbite-react';
 import { toastError } from '../toasts';
 import AddConsumableCategoryModal from './AddConsumableCategory';
 import AddVendorModal from './AddVendorModal';
@@ -13,8 +13,8 @@ interface AddConsumableModalProps {
 
 export interface Category {
   _id: string;
-  name: string;
-  fields?: { name: string; type: string }[];
+  consumableName: string;
+  fields?: { name: string; values: string[] }[];
 }
 
 export interface Vendor {
@@ -29,30 +29,28 @@ export interface Person {
 
 export interface Consumable {
   _id?: string;
-  consumableName: string;
   quantity: number;
   unitPrice: number;
   vendor: string;
   date: string;
   addedBy: string;
   totalCost: number;
-  consumableCategory: string;
+  consumableName: string;
   categoryFields?: { [key: string]: any };
 }
 
 const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose, onSubmit }) => {
-  const [consumableName, setConsumableName] = useState('');
   const [category, setCategory] = useState<string>('');
   const [categories, setCategories] = useState<Array<Category>>([]);
   const [vendors, setVendors] = useState<Array<Vendor>>([]);
   const [people, setPeople] = useState<Array<Person>>([]);
-  const [addedBy, setAddedBy] = useState('');
+  const [addedBy, setAddedBy] = useState<string>('');
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
   const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
   const [quantity, setQuantity] = useState<number | string>('');
   const [unitPrice, setUnitPrice] = useState<number | string>('');
-  const [vendorName, setVendorName] = useState('');
+  const [vendor, setVendor] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [totalCost, setTotalCost] = useState<number | string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -67,7 +65,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
       const data = await response.json();
       setCategories(data);
     } catch (error) {
-      toastError("Error fetching categories");
+      toastError('Error fetching categories');
       console.error('Error fetching categories:', error);
     }
   };
@@ -75,13 +73,12 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   const fetchVendors = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
-        headers: {'Content-Type': 'application/json'},
         credentials: 'include',
       });
       const data = await response.json();
       setVendors(data);
     } catch (error) {
-      toastError("Error fetching vendors");
+      toastError('Error fetching vendors');
       console.error('Error fetching vendors:', error);
     }
   };
@@ -89,26 +86,25 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   const fetchPeople = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/people`, {
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
       const data = await response.json();
       setPeople(data);
     } catch (error) {
-      toastError("Error fetching people");
+      toastError('Error fetching people');
       console.error('Error fetching people:', error);
     }
   };
 
   const handleCategoryChange = (selectedCategoryId: string) => {
     setCategory(selectedCategoryId);
-    const selectedCategory = categories.find((cat: { _id: string; }) => cat._id === selectedCategoryId);
+    const selectedCategory = categories.find((cat) => cat._id === selectedCategoryId);
 
     if (selectedCategory?.fields) {
       setCategoryFields(selectedCategory.fields);
       const initialFieldValues: { [key: string]: any } = {};
-      selectedCategory.fields.forEach((field: { name: string; type: string; }) => {
-        initialFieldValues[field.name] = field.type === 'integer' ? '' : '';
+      selectedCategory.fields.forEach((field) => {
+        initialFieldValues[field.name] = '';
       });
       setCategoryFieldValues(initialFieldValues);
     } else {
@@ -117,22 +113,27 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   };
 
   const handleSubmit = async () => {
-    if (!consumableName || !category || !quantity || !unitPrice || !vendorName || !addedBy || !date) {
+    if (!category || !quantity || !unitPrice || !vendor || !addedBy || !date) {
       toastError('Please fill in all required fields.');
+      return;
+    }
+
+    const selectedCategory = categories.find((cat) => cat._id === category);
+    if (!selectedCategory) {
+      toastError('Invalid category selection.');
       return;
     }
 
     setLoading(true);
     try {
       const newConsumable: Consumable = {
-        consumableName,
         quantity: Number(quantity),
         unitPrice: Number(unitPrice),
-        vendor: vendors.find((vendor) => vendor.name === vendorName)?._id || '',
+        vendor,
         addedBy,
         date,
         totalCost: Number(totalCost),
-        consumableCategory: category,
+        consumableName: selectedCategory.consumableName,
         categoryFields: categoryFieldValues,
       };
 
@@ -148,11 +149,10 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   };
 
   const resetForm = () => {
-    setConsumableName('');
     setCategory('');
     setQuantity('');
     setUnitPrice('');
-    setVendorName('');
+    setVendor('');
     setAddedBy('');
     setDate('');
     setTotalCost('');
@@ -175,9 +175,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
 
   return (
     <Modal show={isOpen} onClose={onClose}>
-      <Modal.Header>
-        Add New Consumable
-      </Modal.Header>
+      <Modal.Header>Add New Consumable</Modal.Header>
       <Modal.Body>
         <AddConsumableCategoryModal
           isOpen={isCategoryModalOpen}
@@ -194,19 +192,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
           onClose={() => setIsPersonModalOpen(false)}
           onSubmit={fetchPeople}
         />
-
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="consumableName" value="Consumable Name *" />
-            <TextInput
-              id="consumableName"
-              value={consumableName}
-              onChange={(e) => setConsumableName(e.target.value)}
-              required
-              className="mt-1"
-            />
-          </div>
-
           <div>
             <Label htmlFor="category" value="Category *" />
             <Select
@@ -214,81 +200,74 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
               value={category}
               onChange={(e) => handleCategoryChange(e.target.value)}
               required
-              className="mt-1"
             >
               <option value="" disabled>Select Category</option>
               {categories.map((cat) => (
                 <option key={cat._id} value={cat._id}>
-                  {cat.name}
+                  {cat.consumableName}
                 </option>
               ))}
             </Select>
           </div>
-
           {categoryFields.map((field) => (
             <div key={field.name}>
               <Label htmlFor={field.name} value={`${field.name} *`} />
-              <TextInput
+              <Select
                 id={field.name}
-                type={field.type === 'integer' ? 'number' : 'text'}
-                value={(categoryFieldValues[field.name] ?? '').toString()}
-                onChange={(e) => {
-                  const value = field.type === 'integer' 
-                    ? e.target.value === '' ? '' : parseInt(e.target.value, 10)
-                    : e.target.value;
+                value={categoryFieldValues[field.name] || ''}
+                onChange={(e) =>
                   setCategoryFieldValues({
                     ...categoryFieldValues,
-                    [field.name]: value,
-                  });
-                }}
+                    [field.name]: e.target.value,
+                  })
+                }
                 required
-                className="mt-1"
-              />
+              >
+                <option value="" disabled>Select {field.name}</option>
+                {field.values.map((value: string) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </Select>
             </div>
           ))}
-
           <div>
             <Label htmlFor="quantity" value="Quantity *" />
             <TextInput
               id="quantity"
               type="number"
-              value={String(quantity)}
+              value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               required
-              className="mt-1"
             />
           </div>
-
           <div>
             <Label htmlFor="unitPrice" value="Unit Price *" />
             <TextInput
               id="unitPrice"
               type="number"
-              value={String(unitPrice)}
+              value={unitPrice}
               onChange={(e) => setUnitPrice(e.target.value)}
               required
-              className="mt-1"
             />
           </div>
-
           <div>
             <Label htmlFor="vendor" value="Vendor *" />
             <Select
               id="vendor"
-              value={vendorName}
-              onChange={(e) => setVendorName(e.target.value)}
+              value={vendor}
+              onChange={(e) => setVendor(e.target.value)}
               required
-              className="mt-1"
             >
               <option value="" disabled>Select Vendor</option>
               {vendors.map((vendor) => (
-                <option key={vendor._id} value={vendor.name}>
+                <option key={vendor._id} value={vendor._id}>
                   {vendor.name}
                 </option>
               ))}
             </Select>
           </div>
-
           <div>
             <Label htmlFor="addedBy" value="Added By *" />
             <Select
@@ -296,7 +275,6 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
               value={addedBy}
               onChange={(e) => setAddedBy(e.target.value)}
               required
-              className="mt-1"
             >
               <option value="" disabled>Select Person</option>
               {people.map((person) => (
@@ -306,7 +284,6 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
               ))}
             </Select>
           </div>
-
           <div>
             <Label htmlFor="date" value="Date *" />
             <TextInput
@@ -315,23 +292,14 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="mt-1"
             />
           </div>
-
           <div>
             <Label htmlFor="totalCost" value="Total Cost" />
-            <TextInput
-              id="totalCost"
-              type="number"
-              value={String(totalCost)}
-              disabled
-              className="mt-1"
-            />
+            <TextInput id="totalCost" type="number" value={totalCost} disabled />
           </div>
         </div>
       </Modal.Body>
-
       <Modal.Footer>
         <Button onClick={onClose} color="gray" disabled={loading}>
           Cancel
