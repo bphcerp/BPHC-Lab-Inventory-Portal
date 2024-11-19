@@ -7,14 +7,12 @@ interface Consumable {
   consumableName: string;
   quantity: number;
   unitPrice: number;
-  totalCost: number;
-  date: string;
-  vendor?: {
+  vendor: {
     name: string;
   };
-  comments?: Comment[];
+  totalCost: number;
+  date: string;
 }
-
 
 const ConsumablesList: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
