@@ -1,11 +1,11 @@
+// AddPeoplePage.tsx
 import { useState, useEffect } from 'react';
-import { Button, Spinner } from 'flowbite-react';
+import { Button, Spinner, TextInput } from 'flowbite-react';
 import AddPeopleModal from '../components/AddPeopleModal';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
 import PersonTransactionsModal from '../components/PersonTransactionsModal';
 
-// Match the Person interface from your model
 interface Person {
   _id: string;
   name: string;
@@ -22,6 +22,7 @@ const AddPeoplePage = () => {
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
     fetchPeople();
@@ -76,9 +77,9 @@ const AddPeoplePage = () => {
   };
 
   const handleNameClick = (person: Person) => {
-  setSelectedPerson(person);
-  setIsTransactionModalOpen(true);
-};
+    setSelectedPerson(person);
+    setIsTransactionModalOpen(true);
+  };
 
   const handleModalSubmit = async (person: Person) => {
     setPeople(prevPeople => {
@@ -88,6 +89,7 @@ const AddPeoplePage = () => {
       return [...prevPeople, person];
     });
     setEditingPerson(null);
+    setIsModalOpen(false); // Close modal after successful submission
   };
 
   const handleModalClose = () => {
@@ -95,10 +97,26 @@ const AddPeoplePage = () => {
     setEditingPerson(null);
   };
 
+  const filteredPeople = people.filter(person =>
+    person.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4 text-center text-gray-800">User Management</h1>
-        <Button color="blue" onClick={() => setIsModalOpen(true)} className="mx-auto block mb-4">Add User</Button>
+      <h1 className="text-2xl font-bold mb-4 text-center text-gray-800">User Management</h1>
+      <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
+  <Button color="blue" onClick={() => setIsModalOpen(true)}>
+    Add User
+  </Button>
+  <TextInput
+    type="text"
+    placeholder="Search users..."
+    value={searchText}
+    onChange={(e) => setSearchText(e.target.value)}
+    className="w-full max-w-xs"
+  />
+</div>
+
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -109,15 +127,15 @@ const AddPeoplePage = () => {
           <table className="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
             <thead className="bg-gray-100">
               <tr>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Name</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Email</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Phone</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Created At</th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Actions</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Name</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Email</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Phone</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Created At</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {people.map((person) => (
+              {filteredPeople.map((person) => (
                 <tr key={person._id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm text-gray-800">
                     <button
@@ -129,7 +147,7 @@ const AddPeoplePage = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-800">{person.email || '-'}</td>
                   <td className="px-6 py-4 text-sm text-gray-800">{person.phone || '-'}</td>
-                  <td>
+                  <td className="px-6 py-4 text-sm text-gray-800">
                     {new Date(person.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-800">
@@ -152,10 +170,10 @@ const AddPeoplePage = () => {
                   </td>
                 </tr>
               ))}
-              {people.length === 0 && (
+              {filteredPeople.length === 0 && (
                 <tr>
                   <td colSpan={5} className="text-center py-4">
-                    No people found. Add someone to get started.
+                    No users found. Add someone to get started.
                   </td>
                 </tr>
               )}
@@ -168,13 +186,14 @@ const AddPeoplePage = () => {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         onSubmit={handleModalSubmit}
+        editingPerson={editingPerson}
       />
 
       <PersonTransactionsModal
-  isOpen={isTransactionModalOpen}
-  onClose={() => setIsTransactionModalOpen(false)}
-  person={selectedPerson}
-/>
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        person={selectedPerson}
+      />
     </div>
   );
 };
