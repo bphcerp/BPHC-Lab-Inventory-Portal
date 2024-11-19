@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import VendorDetailsModal from './VendorDetailsModal';
 
 interface Consumable {
   _id: string;
@@ -16,6 +17,8 @@ interface Consumable {
 const ConsumablesList: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
   const fetchConsumables = async () => {
     try {
@@ -32,7 +35,21 @@ const ConsumablesList: React.FC = () => {
     fetchConsumables();
   }, []);
 
+  const handleVendorClick = (vendorName: string) => {
+    setSelectedVendor(vendorName);
+    setIsVendorModalOpen(true);
+  };
+
+  const closeVendorModal = () => {
+    setIsVendorModalOpen(false);
+    setSelectedVendor(null);
+  };
+
   if (loading) return <div>Loading...</div>;
+
+  const consumablesByVendor = consumables.filter(
+    (consumable) => consumable.vendor.name === selectedVendor
+  );
 
   return (
     <div>
@@ -54,13 +71,27 @@ const ConsumablesList: React.FC = () => {
               <td className="border px-4 py-2">{consumable.consumableName}</td>
               <td className="border px-4 py-2">{consumable.quantity}</td>
               <td className="border px-4 py-2">{consumable.unitPrice}</td>
-              <td className="border px-4 py-2">{consumable.vendor.name}</td>
+              <td
+                className="border px-4 py-2 text-blue-600 cursor-pointer"
+                onClick={() => handleVendorClick(consumable.vendor.name)}
+              >
+                {consumable.vendor.name}
+              </td>
               <td className="border px-4 py-2">{consumable.totalCost}</td>
               <td className="border px-4 py-2">{new Date(consumable.date).toLocaleDateString()}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {selectedVendor && (
+        <VendorDetailsModal
+          vendorName={selectedVendor}
+          consumables={consumablesByVendor}
+          isOpen={isVendorModalOpen}
+          onClose={closeVendorModal}
+        />
+      )}
     </div>
   );
 };
