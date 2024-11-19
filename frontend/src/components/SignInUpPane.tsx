@@ -24,7 +24,7 @@ const SignInUpPane = () => {
             } else if (response.status === 404) {
                 toastError("User not found");
             }else if (response.status === 200) {
-                navigate("/consumables");
+                navigate("/dashboard");
             } 
             else {
                 toastError("Something went wrong");
