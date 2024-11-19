@@ -1,15 +1,42 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-interface ConsumableCategory extends Document {
+interface Field {
     name: string;
-    fields?: { name: string; type: string }[];
+    values: string[];
 }
 
-const consumableCategorySchema: Schema = new Schema({
-    name: { type: String, required: true, unique: true }, // Ensures category names are unique
-    fields: [{ name: { type: String }, type: { type: String } }],
-}, { timestamps: true }); // Adds createdAt and updatedAt fields
+interface ConsumableCategory extends Document {
+    consumableName: string;
+    fields: Field[];
+}
 
-const ConsumableCategoryModel = mongoose.model<ConsumableCategory>('ConsumableCategory', consumableCategorySchema);
+const consumableCategorySchema = new Schema({
+    consumableName: { 
+        type: String, 
+        required: true, 
+        unique: true, 
+        trim: true 
+    },
+    fields: [{
+        name: { 
+            type: String, 
+            required: true, 
+            trim: true 
+        },
+        values: [{ 
+            type: String, 
+            required: true, 
+            trim: true 
+        }]
+    }]
+}, { 
+    timestamps: true 
+});
 
-export { ConsumableCategoryModel };
+// Add index for faster queries
+consumableCategorySchema.index({ consumableName: 1 });
+
+export const ConsumableCategoryModel = mongoose.model<ConsumableCategory>(
+    'ConsumableCategory',
+    consumableCategorySchema
+);
