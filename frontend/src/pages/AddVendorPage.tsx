@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Label, TextInput, Table, Pagination } from 'flowbite-react';
+import { Button, TextInput, Table, Pagination } from 'flowbite-react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
 import EditVendorModal from '../components/EditVendorModal';
@@ -21,7 +21,6 @@ const AddVendorPage: React.FC = () => {
   const [isAddVendorModalOpen, setIsAddVendorModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null); // State for selected vendor
   const [vendorConsumables, setVendorConsumables] = useState([]); // State for vendor consumables
@@ -246,15 +245,19 @@ const AddVendorPage: React.FC = () => {
       )}
 
       {deletingVendor && (
-        <ConfirmDeleteModal
-          isOpen={!!deletingVendor}
-          onClose={() => setDeletingVendor(null)}
-          onConfirm={() => {} /* handleDeleteVendor */}
-          title="Delete Vendor"
-          message={`Are you sure you want to delete vendor "${deletingVendor.name}"?`}
-          loading={deleteLoading}
-        />
-      )}
+  <ConfirmDeleteModal
+    isOpen={!!deletingVendor}
+    onClose={() => setDeletingVendor(null)}
+    itemId={deletingVendor._id}  // Pass the vendor's ID
+    itemName={deletingVendor.name}  // Pass the vendor's name
+    deleteEndpoint="vendor"  // Correct delete endpoint
+    onItemDeleted={(id) => {
+      setVendors((prev) => prev.filter((vendor) => vendor._id !== id));
+      setFilteredVendors((prev) => prev.filter((vendor) => vendor._id !== id));
+    }}
+  />
+)}
+
 
       <AddVendorModal
         isOpen={isAddVendorModalOpen}
