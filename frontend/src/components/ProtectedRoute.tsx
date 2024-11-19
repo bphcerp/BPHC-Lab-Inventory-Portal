@@ -41,7 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ homePage, children }) =
   }
 
   if (homePage && isAuthenticated){
-    return <Navigate to="/consumables" />
+    return <Navigate to="/dashboard" />
   }
 
   return <>{children}</>;
