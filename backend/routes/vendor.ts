@@ -9,16 +9,18 @@ router.use(authenticateToken);
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler =>
   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+// Fetch all vendors
 router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const vendors = await VendorModel.find();
   res.status(200).json(vendors);
 }));
 
+// Add a new vendor
 router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { name, comment } = req.body;
+  const { name, phone, email } = req.body;
 
-  if (!name) {
-    res.status(400).json({ message: 'Name is required' });
+  if (!name || !phone || !email) {
+    res.status(400).json({ message: 'All fields are required' });
     return;
   }
 
@@ -28,7 +30,7 @@ router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void>
     return;
   }
 
-  const newVendor = new VendorModel({ name, comment });
+  const newVendor = new VendorModel({ name, phone, email });
   await newVendor.save();
 
   res.status(201).json(newVendor);
