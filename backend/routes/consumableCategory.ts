@@ -1,44 +1,199 @@
+// import express, { Request, Response, NextFunction, RequestHandler } from 'express';
+// import { ConsumableCategoryModel } from '../models/consumableCategory';
+// import { authenticateToken } from '../middleware/authenticateToken';
+
+// const router = express.Router();
+
+// // Apply authenticateToken middleware to all routes in this router
+// router.use(authenticateToken);
+
+// // Utility function for async error handling, ensuring it conforms to `RequestHandler` by returning `Promise<void>`
+// const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler =>
+//   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+// // GET /api/category - Fetch all consumable categories
+// router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
+//   const categories = await ConsumableCategoryModel.find();
+//   res.status(200).json(categories);
+// }));
+
+// // POST /api/tegory - Create a new consumable category
+// router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
+//   const { name, fields } = req.body;
+
+//   if (!name) {
+//     res.status(400).json({ message: 'Name is required' });
+//     return;
+//   }
+
+//   const existingCategory = await ConsumableCategoryModel.findOne({ name });
+//   if (existingCategory) {
+//     res.status(400).json({ message: 'Consumable category already exists' });
+//     return;
+//   }
+
+//   const newCategory = new ConsumableCategoryModel({
+//     name,
+//     fields: fields || [], // Accept fields array from request body
+//   });
+  
+//   await newCategory.save();
+//   res.status(201).json(newCategory);
+// }));
+
+
+// export default router;
+
+// consumableCategory.ts
 import express, { Request, Response, NextFunction, RequestHandler } from 'express';
 import { ConsumableCategoryModel } from '../models/consumableCategory';
 import { authenticateToken } from '../middleware/authenticateToken';
 
-const router = express.Router();
+interface Field {
+  name: string;
+  values: string[];
+}
 
-// Apply authenticateToken middleware to all routes in this router
+interface ConsumableCategoryRequest {
+  consumableName: string;
+  fields: Field[];
+}
+
+const router = express.Router();
 router.use(authenticateToken);
 
-// Utility function for async error handling, ensuring it conforms to `RequestHandler` by returning `Promise<void>`
-const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler =>
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>): RequestHandler =>
   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// GET /api/consumable-category - Fetch all consumable categories
 router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const categories = await ConsumableCategoryModel.find();
   res.status(200).json(categories);
 }));
 
-// POST /api/consumable-category - Create a new consumable category
 router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const { name, fields } = req.body;
+    try {
+        // Debug log to see incoming request body
+        console.log('Received request body:', req.body);
+        
+        const { consumableName, fields } = req.body as ConsumableCategoryRequest;
 
-  if (!name) {
-    res.status(400).json({ message: 'Name is required' });
-    return;
-  }
+        // Debug log after destructuring
+        console.log('Destructured values:', { consumableName, fields });
 
-  const existingCategory = await ConsumableCategoryModel.findOne({ name });
-  if (existingCategory) {
-    res.status(400).json({ message: 'Consumable category already exists' });
-    return;
-  }
+        // Validate consumable name
+        if (!consumableName?.trim()) {
+            console.log('Validation failed: consumable name is empty');
+            res.status(400).json({ message: 'Consumable name is required' });
+            return;
+        }
 
-  const newCategory = new ConsumableCategoryModel({
-    name,
-    fields: fields || [], // Accept fields array from request body
-  });
-  
-  await newCategory.save();
-  res.status(201).json(newCategory);
+        // Validate fields array
+        if (!Array.isArray(fields)) {
+            console.log('Validation failed: fields is not an array');
+            res.status(400).json({ message: 'Fields must be an array' });
+            return;
+        }
+
+        if (fields.length === 0) {
+            console.log('Validation failed: fields array is empty');
+            res.status(400).json({ message: 'At least one field is required' });
+            return;
+        }
+
+        // Validate each field
+        for (const field of fields) {
+            if (!field.name?.trim()) {
+                console.log('Validation failed: field name is empty');
+                res.status(400).json({ message: 'Each field must have a name' });
+                return;
+            }
+
+            if (!Array.isArray(field.values)) {
+                console.log('Validation failed: field values is not an array');
+                res.status(400).json({ message: 'Field values must be an array' });
+                return;
+            }
+
+            if (field.values.length === 0) {
+                console.log('Validation failed: field values array is empty');
+                res.status(400).json({ 
+                    message: `Field "${field.name}" must have at least one value` 
+                });
+                return;
+            }
+
+            const hasInvalidValue = field.values.some(value => 
+                typeof value !== 'string' || value.trim() === ''
+            );
+            
+            if (hasInvalidValue) {
+                console.log('Validation failed: field has invalid values');
+                res.status(400).json({ 
+                    message: `All values for field "${field.name}" must be non-empty strings` 
+                });
+                return;
+            }
+        }
+
+        // Check for existing category
+        const existingCategory = await ConsumableCategoryModel.findOne({
+            consumableName: consumableName.trim()
+        });
+
+        if (existingCategory) {
+            console.log('Validation failed: category already exists');
+            res.status(400).json({ 
+                message: `Category with name "${consumableName}" already exists` 
+            });
+            return;
+        }
+
+        // Create new category
+        const cleanedFields = fields.map(field => ({
+            name: field.name.trim(),
+            values: field.values.map(v => v.trim()).filter(v => v !== '')
+        }));
+
+        const newCategory = new ConsumableCategoryModel({
+            consumableName: consumableName.trim(),
+            fields: cleanedFields
+        });
+
+        // Debug log before saving
+        console.log('Attempting to save category:', newCategory.toObject());
+
+        await newCategory.save();
+        
+        console.log('Category saved successfully');
+        res.status(201).json(newCategory);
+    } catch (error: any) {
+        console.error('Detailed error in category creation:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code
+        });
+        
+        if (error.name === 'ValidationError') {
+            res.status(400).json({ 
+                message: 'Validation error', 
+                details: error.message 
+            });
+            return;
+        }
+
+        if (error.code === 11000) {
+            res.status(400).json({ 
+                message: 'Duplicate category name' 
+            });
+            return;
+        }
+
+        res.status(500).json({ 
+            message: 'Internal server error while creating category',
+            error: error.message
+        });
+    }
 }));
 
 
