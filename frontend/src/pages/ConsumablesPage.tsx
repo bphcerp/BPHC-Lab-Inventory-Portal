@@ -1,32 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from 'flowbite-react';
-import { toastError } from '../toasts';
+import { Button, TextInput } from 'flowbite-react';
+import { toastError } from '../toasts';  
 import AddConsumableModal from '../components/AddConsumableModal';
 
 export interface Consumable {
   _id: string;
   consumableName: string;
-  referenceNumber: string;
-  quantity: number;
+  quantity: number;      // Total/initial quantity
+  availableQuantity: number;  // Current available quantity
   unitPrice: number;
   addedBy: string;
   vendor: { name: string } | string;
-  consumableCategory: {
-    _id: string;
-    name: string;
-  };
+  categoryFields?: { [key: string]: any };
 }
 
 const ConsumablesPage: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
-  
   const fetchConsumables = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable`, { 
-         headers: {'Content-Type': 'application/json'},
-         credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -63,12 +60,35 @@ const ConsumablesPage: React.FC = () => {
         throw new Error(`Failed to add consumable: ${errorText}`);
       }
 
-      const addedConsumable = await response.json();
-      setConsumables((prev) => [...prev, addedConsumable]);
+      const updatedConsumable = await response.json();
+      
+      setConsumables(prevConsumables => {
+        const existingIndex = prevConsumables.findIndex(c => 
+          c.consumableName === updatedConsumable.consumableName && 
+          c.unitPrice === updatedConsumable.unitPrice &&
+          JSON.stringify(c.categoryFields) === JSON.stringify(updatedConsumable.categoryFields)
+        );
+
+        if (existingIndex !== -1) {
+          const updatedConsumables = [...prevConsumables];
+          updatedConsumables[existingIndex] = updatedConsumable;
+          return updatedConsumables;
+        } else {
+          return [...prevConsumables, updatedConsumable];
+        }
+      });
     } catch (error) {
       toastError('Error adding consumable');
       console.error('Error adding consumable:', error);
     }
+  };
+
+  const filteredConsumables = consumables.filter(consumable =>
+    consumable.consumableName.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const getRowKey = (consumable: Consumable) => {
+    return `${consumable.consumableName}-${consumable.unitPrice}-${JSON.stringify(consumable.categoryFields)}`;
   };
 
   useEffect(() => {
@@ -78,7 +98,18 @@ const ConsumablesPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4 text-center text-gray-800">Consumables</h1>
-      <Button color="blue" onClick={() => setIsModalOpen(true)} className="mx-auto block">Add Consumable</Button>
+      <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
+        <Button color="blue" onClick={() => setIsModalOpen(true)} className="mr-4">
+          Add Consumable
+        </Button>
+        <TextInput
+          type="text"
+          placeholder="Search consumables..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="w-full max-w-xs"
+        />
+      </div>
       <AddConsumableModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -89,27 +120,31 @@ const ConsumablesPage: React.FC = () => {
           <thead>
             <tr className="bg-gray-100 text-gray-600 text-sm font-semibold uppercase">
               <th className="py-3 px-4">Name</th>
+              <th className="py-3 px-4">Category Fields</th>
               <th className="py-3 px-4">Quantity</th>
+              <th className="py-3 px-4">Available</th>
               <th className="py-3 px-4">Unit Price</th>
-              <th className="py-3 px-4">Vendor</th>
-              <th className="py-3 px-4">Category</th>
-              <th className="py-3 px-4">Reference Number</th>
             </tr>
           </thead>
           <tbody>
-            {consumables.length > 0 ? (
-              consumables.map((consumable) => (
-                <tr key={consumable._id} className="border-t">
+            {filteredConsumables.length > 0 ? (
+              filteredConsumables.map((consumable) => (
+                <tr key={getRowKey(consumable)} className="border-t">
                   <td className="py-3 px-4 text-gray-800">{consumable.consumableName}</td>
+                   <td className="py-3 px-4 text-gray-800">
+                    {consumable.categoryFields && Object.keys(consumable.categoryFields).length > 0 ? (
+                      Object.entries(consumable.categoryFields).map(([key, value]) => (
+                        <div key={`${key}-${value}`}>
+                          <strong>{key}:</strong> {value}
+                        </div>
+                      ))
+                    ) : (
+                      <div>N/A</div>
+                    )}
+                  </td>
                   <td className="py-3 px-4 text-gray-800">{consumable.quantity}</td>
+                  <td className="py-3 px-4 text-gray-800">{consumable.availableQuantity}</td>
                   <td className="py-3 px-4 text-gray-800">₹{consumable.unitPrice.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-gray-800">
-                    {typeof consumable.vendor === 'string' ? consumable.vendor : consumable.vendor?.name}
-                  </td>
-                  <td className="py-3 px-4 text-gray-800">
-                     {consumable.consumableCategory?.name || 'N/A'}
-                  </td>
-                  <td className="py-3 px-4 text-gray-800">{consumable.referenceNumber}</td>
                 </tr>
               ))
             ) : (
