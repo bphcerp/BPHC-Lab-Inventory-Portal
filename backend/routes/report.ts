@@ -131,7 +131,7 @@ router.get(
       const addedBy = (txn.addedBy as IPeople)?.name || 'N/A';
       const issuedBy = (txn.issuedBy as IPeople)?.name || 'N/A';
       const issuedTo = (txn.issuedTo as IPeople)?.name || 'N/A';
-      const categoryFields = txn.categoryFields || {};
+       const categoryFields = (txn.categoryFields as Record<string, any>) || {};
 
       const row = [
         index + 1,
