@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Spinner } from 'flowbite-react'; 
 import { toastError } from '../toasts';
 
 interface CreditTransaction {
@@ -19,12 +20,6 @@ interface DebitTransaction {
     transactionDate: string;
     remainingQuantity: number;
 }
-
-const LoadingSpinner: React.FC = () => (
-    <div className="flex justify-center items-center h-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-    </div>
-);
 
 const ConsumableHistory: React.FC = () => {
     const [history, setHistory] = useState<CreditTransaction[] | DebitTransaction[]>([]);
@@ -91,6 +86,15 @@ const ConsumableHistory: React.FC = () => {
         );
     };
 
+    // Add loading state
+    if (loading) {
+        return (
+            <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
+                <Spinner size="xl" />
+            </div>
+        );
+    }
+
     return (
         <div className="container mx-auto p-4">
              <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">
@@ -108,9 +112,7 @@ const ConsumableHistory: React.FC = () => {
                     Show {isCreditHistory ? 'Debit' : 'Credit'} History
                 </button>
             </div>
-            {loading ? (
-                <LoadingSpinner />
-            ) : error ? (
+            {error ? (
                 <div className="text-center text-red-600">{error}</div>
             ) : history.length === 0 ? (
                 <div className="text-center text-gray-600 flex flex-col items-center">
