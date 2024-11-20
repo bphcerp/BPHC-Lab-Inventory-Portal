@@ -21,7 +21,7 @@ const HelpPage = () => {
           Current Version: v1.0
         </p>
         <p className="text-center text-gray-600 mb-8">
-          Last Updated On: 20/11/2024
+          Last Updated On: 21/11/2024
         </p>
         <p className="text-center text-gray-600 mb-8">
           Reach out to us for assistance or any inquiries. We’re here to help!
