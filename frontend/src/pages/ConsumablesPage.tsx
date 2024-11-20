@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextInput } from 'flowbite-react';
+import { Button, TextInput, Spinner } from 'flowbite-react';
 import { toastError } from '../toasts';  
 import AddConsumableModal from '../components/AddConsumableModal';
 
 export interface Consumable {
   _id: string;
   consumableName: string;
-  quantity: number;      // Total/initial quantity
-  availableQuantity: number;  // Current available quantity
+  quantity: number;
+  availableQuantity: number;
   unitPrice: number;
   addedBy: string;
   vendor: { name: string } | string;
@@ -18,6 +18,7 @@ const ConsumablesPage: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const fetchConsumables = async () => {
     try {
@@ -43,6 +44,8 @@ const ConsumablesPage: React.FC = () => {
       toastError('Error fetching consumables');
       console.error('Error fetching consumables:', error);
       setConsumables([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,6 +97,15 @@ const ConsumablesPage: React.FC = () => {
   useEffect(() => {
     fetchConsumables();
   }, []);
+
+  // Add loading state
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4">
