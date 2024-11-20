@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Table, Pagination, TextInput } from 'flowbite-react';
+import { Button, Table, Pagination, TextInput, Spinner } from 'flowbite-react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
 import AddConsumableCategoryModal from '../components/AddConsumableCategory';
@@ -20,7 +20,7 @@ interface Category {
 const AddCategoryTypePage: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
     const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -28,64 +28,61 @@ const AddCategoryTypePage: React.FC = () => {
     const itemsPerPage = 10;
 
     const fetchCategories = async () => {
-    try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category`, {
-            credentials: 'include',
-        });
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Fetched categories:', data); // Debug log
-            setCategories(Array.isArray(data) ? data : []);
-        } else {
-            toastError('Failed to fetch categories');
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category`, {
+                credentials: 'include',
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setCategories(Array.isArray(data) ? data : []);
+            } else {
+                toastError('Failed to fetch categories');
+            }
+        } catch (error) {
+            toastError('Error fetching categories');
+        } finally {
+            setLoading(false);
         }
-    } catch (error) {
-        toastError('Error fetching categories');
-    }
-};
-
+    };
 
     const handleAddCategory = async (consumableName: string, fields: Field[]) => {
-    setLoading(true);
-    try {
-        // Debug log before sending request
-        console.log('Sending category data:', { consumableName, fields });
+        setLoading(true);
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ 
+                    consumableName: consumableName.trim(),
+                    fields: fields.map(field => ({
+                        name: field.name.trim(),
+                        values: field.values.filter(v => v !== '')
+                    }))
+                }),
+            });
 
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/category`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({ 
-                consumableName: consumableName.trim(),
-                fields: fields.map(field => ({
-                    name: field.name.trim(),
-                    values: field.values.filter(v => v !== '')
-                }))
-            }),
-        });
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to add category');
+            }
 
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Failed to add category');
+            await fetchCategories();
+            toastSuccess('Category added successfully');
+            setAddModalOpen(false);
+        } catch (error) {
+            console.error('Error adding category:', error);
+            toastError(error instanceof Error ? error.message : 'Error adding category');
+            setLoading(false);
         }
-
-        console.log('Category added successfully:', data);
-        await fetchCategories();
-        toastSuccess('Category added successfully');
-        setAddModalOpen(false);
-    } catch (error) {
-        console.error('Error adding category:', error);
-        toastError(error instanceof Error ? error.message : 'Error adding category');
-    } finally {
-        setLoading(false);
-    }
     };  
+
     const filteredCategories = categories.filter(
-    (category) => category.consumableName?.toLowerCase().includes(searchText.toLowerCase())
-);
+        (category) => category.consumableName?.toLowerCase().includes(searchText.toLowerCase())
+    );
+
     const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentCategories = filteredCategories.slice(startIndex, startIndex + itemsPerPage);
@@ -93,6 +90,15 @@ const AddCategoryTypePage: React.FC = () => {
     useEffect(() => {
         fetchCategories();
     }, []);
+
+    // Add loading state
+    if (loading) {
+        return (
+            <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
+                <Spinner size="xl" />
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto p-4">
@@ -118,48 +124,48 @@ const AddCategoryTypePage: React.FC = () => {
                     <Table.HeadCell className="text-center">Actions</Table.HeadCell>
                 </Table.Head>
                 <Table.Body>
-    {currentCategories.length > 0 ? (
-        currentCategories.map((category) => (
-            <Table.Row key={category._id}>
-                <Table.Cell className="text-center">
-                    {category.consumableName || 'Unnamed Consumable'}
-                </Table.Cell>
-                <Table.Cell className="text-center">
-                    {category.fields.map((field) => (
-                        <div key={field.name} className="mb-1">
-                            <span className="font-medium">{field.name}:</span>{' '}
-                            <span className="text-gray-600">
-                                {field.values.join(', ')}
-                            </span>
-                        </div>
-                    ))}
-                </Table.Cell>
-                <Table.Cell className="text-center">
-                    <div className="flex justify-center gap-3">
-                        <button
-                            onClick={() => setSelectedCategory(category)}
-                            className="text-blue-600 hover:text-blue-800"
-                        >
-                            <FaEdit size={14} />
-                        </button>
-                        <button
-                            onClick={() => setDeletingCategory(category)}
-                            className="text-red-600 hover:text-red-800"
-                        >
-                            <FaTrash size={14} />
-                        </button>
-                    </div>
-                </Table.Cell>
-            </Table.Row>
-        ))
-    ) : (
-        <Table.Row>
-            <Table.Cell colSpan={3} className="text-center">
-                No consumables found.
-            </Table.Cell>
-        </Table.Row>
-    )}
-</Table.Body>
+                    {currentCategories.length > 0 ? (
+                        currentCategories.map((category) => (
+                            <Table.Row key={category._id}>
+                                <Table.Cell className="text-center">
+                                    {category.consumableName || 'Unnamed Consumable'}
+                                </Table.Cell>
+                                <Table.Cell className="text-center">
+                                    {category.fields.map((field) => (
+                                        <div key={field.name} className="mb-1">
+                                            <span className="font-medium">{field.name}:</span>{' '}
+                                            <span className="text-gray-600">
+                                                {field.values.join(', ')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </Table.Cell>
+                                <Table.Cell className="text-center">
+                                    <div className="flex justify-center gap-3">
+                                        <button
+                                            onClick={() => setSelectedCategory(category)}
+                                            className="text-blue-600 hover:text-blue-800"
+                                        >
+                                            <FaEdit size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeletingCategory(category)}
+                                            className="text-red-600 hover:text-red-800"
+                                        >
+                                            <FaTrash size={14} />
+                                        </button>
+                                    </div>
+                                </Table.Cell>
+                            </Table.Row>
+                        ))
+                    ) : (
+                        <Table.Row>
+                            <Table.Cell colSpan={3} className="text-center">
+                                No consumables found.
+                            </Table.Cell>
+                        </Table.Row>
+                    )}
+                </Table.Body>
             </Table>
 
             {totalPages > 1 && (
