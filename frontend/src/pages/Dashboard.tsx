@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-
 import { toastError } from '../toasts';
 import TableCustom from '../components/TableCustom';
 import { ColumnDef } from '@tanstack/react-table';
+import ConsumableDetailsModal from '../components/ConsumableDetailsModal';
 
 export interface Consumable {
   _id: string;
@@ -18,6 +18,8 @@ export interface Consumable {
 const Dashboard: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [searchText] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedConsumable, setSelectedConsumable] = useState('');
 
   const fetchConsumables = async () => {
     try {
@@ -53,6 +55,11 @@ const Dashboard: React.FC = () => {
     return 'bg-green-100 text-green-700 border border-green-300';
   };
 
+  const handleConsumableClick = (consumableName: string) => {
+    setSelectedConsumable(consumableName);
+    setIsModalOpen(true);
+  };
+
   useEffect(() => {
     fetchConsumables();
   }, []);
@@ -65,14 +72,15 @@ const Dashboard: React.FC = () => {
       cell: ({ row }) => {
         const consumable = row.original;
         return (
-          <span
+          <button
+            onClick={() => handleConsumableClick(consumable.consumableName)}
             className={`px-3 py-1 rounded-full text-sm font-medium ${getPillClass(
               consumable.availableQuantity,
               consumable.quantity
-            )}`}
+            )} hover:opacity-80 transition-opacity cursor-pointer`}
           >
             {consumable.consumableName}
-          </span>
+          </button>
         );
       },
       meta: {
@@ -97,7 +105,6 @@ const Dashboard: React.FC = () => {
     }
   ];
 
-  // Dynamic attribute columns
   const attributeColumns = Array.from({ length: 4 }).map((_, index) => ({
     id: `attribute${index + 1}`,
     header: `Attribute ${index + 1}`,
@@ -112,7 +119,6 @@ const Dashboard: React.FC = () => {
     }
   }));
 
-  // Combine columns
   const combinedColumns = [...columns, ...attributeColumns] as ColumnDef<Consumable>[];
 
   return (
@@ -140,6 +146,12 @@ const Dashboard: React.FC = () => {
           consumable.consumableName.toLowerCase().includes(searchText.toLowerCase())
         )}
         columns={combinedColumns}
+      />
+
+      <ConsumableDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        consumableName={selectedConsumable}
       />
     </div>
   );
