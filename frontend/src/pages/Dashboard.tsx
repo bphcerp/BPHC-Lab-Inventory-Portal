@@ -127,7 +127,7 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
       <Spinner size="xl" />
     </div>
   );
