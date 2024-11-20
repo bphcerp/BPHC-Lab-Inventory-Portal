@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Modal, Label, TextInput, Select } from 'flowbite-react';
-import { toastError } from '../toasts';
+import { toastError, toastSuccess } from '../toasts';
 import AddConsumableCategoryModal from './AddConsumableCategory';
 import AddVendorModal from './AddVendorModal';
 import AddPeopleModal from './AddPeopleModal';
@@ -138,6 +138,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
       };
 
       await onSubmit(newConsumable);
+      toastSuccess(`${selectedCategory.consumableName} added successfully`);
       onClose();
       resetForm();
     } catch (error) {
