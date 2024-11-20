@@ -11,7 +11,9 @@ import consumableRoutes from './routes/consumable';
 import vendorRoutes from './routes/vendor';
 import peopleRoutes from './routes/people';
 import outRoutes from './routes/out';
+import reportRoutes from './routes/report';
 import historyRoutes from './routes/history';
+import consumableDetailsRoutes from './routes/consumableDetails';
 import transactionRoutes from './routes/transactionsByPerson';
 import { authenticateToken } from './middleware/authenticateToken';
 
@@ -40,8 +42,10 @@ app.use('/api/consumable', outRoutes); // Mounting out routes at the same base U
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/category', consumableCategoryRoutes);
 app.use('/api/history',historyRoutes);
+app.use('/api/report',reportRoutes);
 app.use('/api/transactions',transactionRoutes);
 app.use('/api/people',peopleRoutes);
+app.use('/api/consumable-details', consumableDetailsRoutes);
 app.use(express.static("public"));
 app.use('/api/transactions', transactionsByVendor);
 
