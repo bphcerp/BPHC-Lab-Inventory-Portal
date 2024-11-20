@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from 'flowbite-react';
+import { Button, Spinner } from 'flowbite-react';
 import { toastError } from '../toasts';
 import ClaimConsumableModal from '../components/ClaimConsumableModal';
 
@@ -15,16 +15,16 @@ const OutPage: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [selectedConsumable, setSelectedConsumable] = useState<Consumable | null>(null);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchConsumables = async () => {
-
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
         },
-          credentials: 'include',
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -43,6 +43,8 @@ const OutPage: React.FC = () => {
     } catch (error) {
       toastError("Error fetching consumables");
       console.error("Error fetching consumables:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,6 +65,15 @@ const OutPage: React.FC = () => {
     fetchConsumables();
     closeClaimModal();
   };
+
+  // Add loading state
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4">
