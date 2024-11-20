@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MdOutlineInventory } from "react-icons/md";
 import { FaSignOutAlt, FaUserPlus } from "react-icons/fa";
-import { IoMdPeople } from "react-icons/io";
+import { BiSolidFileExport } from "react-icons/bi";
+import { MdOutlineSpaceDashboard } from "react-icons/md";
+import { IoMdPeople, IoMdHelpBuoy } from "react-icons/io";
 import { GrTransaction } from "react-icons/gr";
 import { TbCategoryPlus } from "react-icons/tb";
 import { AiOutlineCaretDown, AiOutlineSetting } from "react-icons/ai";
@@ -34,7 +36,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
       }`}
     >
       <nav className="flex flex-col flex-grow mt-4">
-        <NavItem to="/dashboard" icon={<MdOutlineInventory />} label="Dashboard" />
+        <NavItem to="/dashboard" icon={<MdOutlineSpaceDashboard />} label="Dashboard" />
         <NavItem to="/consumables" icon={<MdOutlineInventory />} label="Add Consumables" />
         <NavItem to="/out" icon={<FaSignOutAlt />} label="Issue Consumable" />
         <NavItem to="/history" icon={<GrTransaction />} label="Transaction History" />
@@ -56,11 +58,13 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
               <NavItem to="/vendors" icon={<FaUserPlus />} label="Add Vendor" />
               <NavItem to="/people" icon={<IoMdPeople />} label="Add User" />
               <NavItem to="/category" icon={<TbCategoryPlus />} label="Add Category" />
+              <NavItem to="/report" icon={<BiSolidFileExport />} label=" Generate Report" />
             </div>
           )}
         </div>
       </nav>
       <div className="px-4 py-3 border-t border-gray-300">
+        <NavItem to="/help" icon={<IoMdHelpBuoy />} label=" Help" />
         <button
           className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition"
           onClick={handleLogout}
