@@ -126,12 +126,13 @@ const Dashboard: React.FC = () => {
   const combinedColumns = [...columns, ...attributeColumns] as ColumnDef<Consumable>[];
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spinner size="xl" />
-      </div>
-    );
-  }
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <Spinner size="xl" />
+    </div>
+  );
+}
+
 
   return (
     <div className="container mx-auto p-4">
