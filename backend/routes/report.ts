@@ -80,14 +80,14 @@ router.get(
     const headers = [
       'S.No',
       'Consumable Name',
+      'Category Fields',
       'Transaction Type',
       'Qty',
       'Ref No.',
       'Added By',
       'Issued By',
       'Issued To',
-      'Date',
-      'Category Fields',
+      'Date'
     ];
 
     // Adjusted column widths
@@ -124,14 +124,14 @@ router.get(
       const row = [
         index + 1,
         txn.consumableName,
+        categoryDetails,
         txn.transactionType,
         txn.transactionQuantity,
         txn.referenceNumber || 'N/A',
         addedBy,
         issuedBy,
         issuedTo,
-        txn.transactionDate.toLocaleDateString(), // Only date
-        categoryDetails,
+        txn.transactionDate.toLocaleDateString() // Only date
       ];
 
       row.forEach((cell, i) => {
