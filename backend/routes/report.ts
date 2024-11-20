@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from 'express';
 import { authenticateToken } from '../middleware/authenticateToken';
 import { ConsumableTransactionModel } from '../models/consumableTransaction';
 import PDFDocument from 'pdfkit';
-import { IPeople } from '../models/people';
 
 const router = express.Router();
 
@@ -87,11 +86,11 @@ router.get(
       'Added By',
       'Issued By',
       'Issued To',
-      'Date'
+      'Date',
     ];
 
     // Adjusted column widths
-    const columnWidths = [20, 100, 80, 40, 70, 80, 80, 80, 60, 150];
+    const columnWidths = [20, 80, 140, 40, 40, 120, 80, 80, 80, 80];
     const rowHeight = 15;
     const tableStartX = 10;
     const tableStartY = 70;
@@ -131,7 +130,7 @@ router.get(
         addedBy,
         issuedBy,
         issuedTo,
-        txn.transactionDate.toLocaleDateString() // Only date
+        new Date(txn.transactionDate).toLocaleDateString('en-GB'), // Format: dd/mm/yyyy
       ];
 
       row.forEach((cell, i) => {
