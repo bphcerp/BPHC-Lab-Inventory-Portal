@@ -67,56 +67,38 @@ router.get(
       .populate('issuedBy', 'name')
       .populate('issuedTo', 'name');
 
-    const doc = new PDFDocument({ layout: 'landscape', margin: 30 });
+    const doc = new PDFDocument({ layout: 'landscape', margin: 10 });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=consumable-report.pdf');
 
     doc.pipe(res);
-    doc.fontSize(18).text('Consumable Transactions Report', { align: 'center' });
-    doc.moveDown();
 
-    // Gather all unique category fields
-    const categoryFieldsSet = new Set<string>();
-    transactions.forEach(txn => {
-      const categoryFields = txn.categoryFields || {};
-      Object.keys(categoryFields).forEach(field => categoryFieldsSet.add(field));
-    });
+    doc.fontSize(12).text('Consumable Transactions Report', { align: 'center' });
+    doc.moveDown(0.5);
 
-    const categoryFieldsArray = Array.from(categoryFieldsSet);
-
-    // Define table headers including category fields
+    // Define table headers
     const headers = [
       'S.No',
       'Consumable Name',
       'Transaction Type',
-      'Quantity',
-      'Reference No.',
+      'Qty',
+      'Ref No.',
       'Added By',
       'Issued By',
       'Issued To',
       'Date',
-      ...categoryFieldsArray,
+      'Category Fields',
     ];
 
-    const tableStartX = 30;
-    const tableStartY = 100;
-    const columnWidths = [
-      30, // S.No
-      100, // Consumable Name
-      100, // Transaction Type
-      50, // Quantity
-      80, // Reference No.
-      80, // Added By
-      80, // Issued By
-      80, // Issued To
-      100, // Date
-      ...categoryFieldsArray.map(() => 80), // Dynamic width for category fields
-    ];
-    const rowHeight = 20;
+    // Adjusted column widths
+    const columnWidths = [20, 100, 80, 40, 70, 80, 80, 80, 60, 150];
+    const rowHeight = 15;
+    const tableStartX = 10;
+    const tableStartY = 70;
 
-    // Draw table header
+    // Draw table headers
     let y = tableStartY;
-    doc.fontSize(10).font('Helvetica-Bold');
+    doc.fontSize(8).font('Helvetica-Bold');
     headers.forEach((header, i) => {
       doc.text(header, tableStartX + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), y, {
         width: columnWidths[i],
@@ -124,14 +106,20 @@ router.get(
       });
     });
 
-    // Draw table rows
     y += rowHeight;
-    doc.font('Helvetica');
+    doc.font('Helvetica').fontSize(8);
+
+    // Add table rows
     transactions.forEach((txn, index) => {
-      const addedBy = (txn.addedBy as IPeople)?.name || 'N/A';
-      const issuedBy = (txn.issuedBy as IPeople)?.name || 'N/A';
-      const issuedTo = (txn.issuedTo as IPeople)?.name || 'N/A';
-       const categoryFields = (txn.categoryFields as Record<string, any>) || {};
+      const addedBy = (txn.addedBy as { name: string })?.name || 'N/A';
+      const issuedBy = (txn.issuedBy as { name: string })?.name || 'N/A';
+      const issuedTo = (txn.issuedTo as { name: string })?.name || 'N/A';
+
+      const categoryDetails = txn.categoryFields
+        ? Object.entries(txn.categoryFields)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(', ')
+        : 'N/A';
 
       const row = [
         index + 1,
@@ -142,25 +130,25 @@ router.get(
         addedBy,
         issuedBy,
         issuedTo,
-        txn.transactionDate.toLocaleString(),
-        ...categoryFieldsArray.map(field => categoryFields[field] || 'N/A'),
+        txn.transactionDate.toLocaleDateString(), // Only date
+        categoryDetails,
       ];
 
       row.forEach((cell, i) => {
         doc.text(cell.toString(), tableStartX + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), y, {
           width: columnWidths[i],
-          align: 'center',
+          align: 'left',
         });
       });
 
       y += rowHeight;
 
-      // Start a new page if the table exceeds the page height
-      if (y > doc.page.height - 50) {
+      // Handle page overflow
+      if (y > doc.page.height - 20) {
         doc.addPage({ layout: 'landscape' });
         y = tableStartY;
 
-        // Redraw the header on the new page
+        // Redraw headers on the new page
         doc.font('Helvetica-Bold');
         headers.forEach((header, i) => {
           doc.text(header, tableStartX + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), y, {
@@ -168,6 +156,7 @@ router.get(
             align: 'center',
           });
         });
+
         y += rowHeight;
         doc.font('Helvetica');
       }
@@ -176,7 +165,5 @@ router.get(
     doc.end();
   })
 );
-
-
 
 export default router;
