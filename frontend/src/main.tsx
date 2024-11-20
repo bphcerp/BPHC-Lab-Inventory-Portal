@@ -11,11 +11,13 @@ import OutPage from './pages/OutPage' // Import the new OUT page component
 import AddVendorPage from './pages/AddVendorPage'
 import AddPeoplePage from './pages/AddPeoplePage'
 import Dashboard from './pages/Dashboard'
+import Report from './pages/Report'
 import AddCategoryTypePage from './pages/AddCategoryTypePage'
 import ConsumableHistoryPage from './pages/ConsumableHistory'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import Help from './pages/Help'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CID}>
@@ -32,6 +34,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path='/vendors' element={<AddVendorPage />} />
             <Route path='/people' element={<AddPeoplePage />} />
             <Route path='/category' element={<AddCategoryTypePage />} />
+            <Route path='/report' element={<Report />} />
+            <Route path='/help' element={<Help />} />
           </Route>
           <Route path='/login' element={<LoginPage />} />
         </Routes>
