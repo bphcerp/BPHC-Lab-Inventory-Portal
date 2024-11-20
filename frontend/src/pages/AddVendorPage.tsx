@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextInput, Table, Pagination } from 'flowbite-react';
+import { Button, TextInput, Table, Pagination, Spinner } from 'flowbite-react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
 import EditVendorModal from '../components/EditVendorModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import AddVendorModal from '../components/AddVendorModal';
-import VendorDetailsModal from '../components/VendorDetailsModal'; // Import the VendorDetailsModal
+import VendorDetailsModal from '../components/VendorDetailsModal';
 
 interface Vendor {
   _id: string;
   name: string;
   email: string;
   phone: string;
+}
+
+interface VendorStats {
+  totalTransactions: number;
+  totalSpent: number;
+  uniqueItems: number;
+  mostRecentTransaction: string;
+  oldestTransaction: string;
 }
 
 const AddVendorPage: React.FC = () => {
@@ -22,22 +30,16 @@ const AddVendorPage: React.FC = () => {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null); // State for selected vendor
-  const [vendorConsumables, setVendorConsumables] = useState([]); // State for vendor consumables
-  const [isVendorDetailsModalOpen, setIsVendorDetailsModalOpen] = useState(false); // State for VendorDetailsModal
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [vendorConsumables, setVendorConsumables] = useState([]);
+  const [isVendorDetailsModalOpen, setIsVendorDetailsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 10;
   const [vendorStats, setVendorStats] = useState<VendorStats | undefined>(undefined);
 
-  interface VendorStats {
-    totalTransactions: number;
-    totalSpent: number;
-    uniqueItems: number;
-    mostRecentTransaction: string;
-    oldestTransaction: string;
-  }
-
   const fetchVendors = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
         credentials: 'include',
       });
@@ -46,6 +48,8 @@ const AddVendorPage: React.FC = () => {
       setFilteredVendors(data);
     } catch (error) {
       toastError('Failed to fetch vendors');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,12 +66,10 @@ const AddVendorPage: React.FC = () => {
       toastError('Failed to fetch vendor consumables');
     }
   };
-  
-  
 
   const handleVendorClick = (vendor: Vendor) => {
     setSelectedVendor(vendor);
-    fetchVendorConsumables(vendor._id); // Fetch consumables for the selected vendor
+    fetchVendorConsumables(vendor._id);
     setIsVendorDetailsModalOpen(true);
   };
 
@@ -75,7 +77,7 @@ const AddVendorPage: React.FC = () => {
     setIsVendorDetailsModalOpen(false);
     setSelectedVendor(null);
     setVendorConsumables([]);
-    setVendorStats(undefined); // Add this line to reset stats
+    setVendorStats(undefined);
   };
 
   const addNewVendor = async (vendor: { name: string; phone: string; email: string }) => {
@@ -120,7 +122,7 @@ const AddVendorPage: React.FC = () => {
 
     setFilteredVendors(
       vendors.filter((vendor) => {
-        const name = vendor.name?.toLowerCase() || ''; // Safely handle undefined
+        const name = vendor.name?.toLowerCase() || '';
         const email = vendor.email?.toLowerCase() || '';
         const phone = vendor.phone?.toLowerCase() || '';
 
@@ -133,15 +135,24 @@ const AddVendorPage: React.FC = () => {
     );
 
     if (!searchTerm.trim()) {
-      setFilteredVendors(vendors); // Reset to original list if search is cleared
+      setFilteredVendors(vendors);
     }
 
-    setCurrentPage(1); // Reset to the first page when searching
+    setCurrentPage(1);
   };
 
   useEffect(() => {
     fetchVendors();
   }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
 
   const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -152,8 +163,6 @@ const AddVendorPage: React.FC = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Add Vendor</h1>
 
-      
-      {/* Add Vendor Button */}
       <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
         <Button color="blue" onClick={handleAddVendor}>
           Add Vendor
@@ -167,7 +176,6 @@ const AddVendorPage: React.FC = () => {
         />
       </div>
 
-      {/* Vendors Table Section */}
       <div className="max-w-7xl mx-auto mb-6">
         <Table striped className="w-full">
           <Table.Head>
@@ -234,7 +242,6 @@ const AddVendorPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modals */}
       {editingVendor && (
         <EditVendorModal
           isOpen={!!editingVendor}
@@ -245,19 +252,18 @@ const AddVendorPage: React.FC = () => {
       )}
 
       {deletingVendor && (
-  <ConfirmDeleteModal
-    isOpen={!!deletingVendor}
-    onClose={() => setDeletingVendor(null)}
-    itemId={deletingVendor._id}  // Pass the vendor's ID
-    itemName={deletingVendor.name}  // Pass the vendor's name
-    deleteEndpoint="vendor"  // Correct delete endpoint
-    onItemDeleted={(id) => {
-      setVendors((prev) => prev.filter((vendor) => vendor._id !== id));
-      setFilteredVendors((prev) => prev.filter((vendor) => vendor._id !== id));
-    }}
-  />
-)}
-
+        <ConfirmDeleteModal
+          isOpen={!!deletingVendor}
+          onClose={() => setDeletingVendor(null)}
+          itemId={deletingVendor._id}
+          itemName={deletingVendor.name}
+          deleteEndpoint="vendor"
+          onItemDeleted={(id) => {
+            setVendors((prev) => prev.filter((vendor) => vendor._id !== id));
+            setFilteredVendors((prev) => prev.filter((vendor) => vendor._id !== id));
+          }}
+        />
+      )}
 
       <AddVendorModal
         isOpen={isAddVendorModalOpen}
