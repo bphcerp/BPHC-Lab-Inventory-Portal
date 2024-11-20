@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Spinner } from 'flowbite-react';
 import { toastError } from '../toasts';
 import TableCustom from '../components/TableCustom';
 import { ColumnDef } from '@tanstack/react-table';
@@ -20,6 +21,7 @@ const Dashboard: React.FC = () => {
   const [searchText] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedConsumable, setSelectedConsumable] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const fetchConsumables = async () => {
     try {
@@ -45,6 +47,8 @@ const Dashboard: React.FC = () => {
       toastError('Error fetching consumables');
       console.error('Error fetching consumables:', error);
       setConsumables([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,6 +124,14 @@ const Dashboard: React.FC = () => {
   }));
 
   const combinedColumns = [...columns, ...attributeColumns] as ColumnDef<Consumable>[];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spinner size="xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4">
