@@ -67,7 +67,7 @@ router.get(
       .populate('issuedBy', 'name')
       .populate('issuedTo', 'name');
 
-    const doc = new PDFDocument({ layout: 'landscape', margin: 30 }); // Landscape orientation
+    const doc = new PDFDocument({ layout: 'landscape', margin: 30 });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=consumable-report.pdf');
 
@@ -75,7 +75,16 @@ router.get(
     doc.fontSize(18).text('Consumable Transactions Report', { align: 'center' });
     doc.moveDown();
 
-    // Define table headers
+    // Gather all unique category fields
+    const categoryFieldsSet = new Set<string>();
+    transactions.forEach(txn => {
+      const categoryFields = txn.categoryFields || {};
+      Object.keys(categoryFields).forEach(field => categoryFieldsSet.add(field));
+    });
+
+    const categoryFieldsArray = Array.from(categoryFieldsSet);
+
+    // Define table headers including category fields
     const headers = [
       'S.No',
       'Consumable Name',
@@ -86,11 +95,23 @@ router.get(
       'Issued By',
       'Issued To',
       'Date',
+      ...categoryFieldsArray,
     ];
 
     const tableStartX = 30;
     const tableStartY = 100;
-    const columnWidths = [30, 100, 100, 50, 80, 80, 80, 80, 100];
+    const columnWidths = [
+      30, // S.No
+      100, // Consumable Name
+      100, // Transaction Type
+      50, // Quantity
+      80, // Reference No.
+      80, // Added By
+      80, // Issued By
+      80, // Issued To
+      100, // Date
+      ...categoryFieldsArray.map(() => 80), // Dynamic width for category fields
+    ];
     const rowHeight = 20;
 
     // Draw table header
@@ -110,6 +131,7 @@ router.get(
       const addedBy = (txn.addedBy as IPeople)?.name || 'N/A';
       const issuedBy = (txn.issuedBy as IPeople)?.name || 'N/A';
       const issuedTo = (txn.issuedTo as IPeople)?.name || 'N/A';
+      const categoryFields = txn.categoryFields || {};
 
       const row = [
         index + 1,
@@ -121,6 +143,7 @@ router.get(
         issuedBy,
         issuedTo,
         txn.transactionDate.toLocaleString(),
+        ...categoryFieldsArray.map(field => categoryFields[field] || 'N/A'),
       ];
 
       row.forEach((cell, i) => {
