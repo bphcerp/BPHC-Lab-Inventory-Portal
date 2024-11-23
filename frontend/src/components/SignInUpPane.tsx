@@ -1,7 +1,7 @@
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { FormEvent, FormEventHandler, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toastError, toastWarn } from "../toasts";
+import { toastError } from "../toasts";
 import PasswordLoginPane from "./PasswordLoginPane";
 
 const SignInUpPane = () => {
@@ -19,16 +19,11 @@ const SignInUpPane = () => {
                 body: JSON.stringify(credentials),
             });
 
-            if (response.status === 401) {
-                toastWarn("Wrong Credentials");
-            } else if (response.status === 404) {
-                toastError("User not found");
-            }else if (response.status === 200) {
-                navigate("/dashboard");
-            } 
-            else {
-                toastError("Something went wrong");
-            }
+            if (!response.ok) {
+                    toastError((await response.json()).message);
+                } else {
+                    navigate("/dashboard");
+                }
         } catch (error) {
             toastError("Something went wrong");
             console.log(error);
@@ -60,15 +55,11 @@ const SignInUpPane = () => {
                 body: JSON.stringify({ email, pwd }),
             });
 
-            if (response.status === 401) {
-                toastWarn("Wrong Credentials");
-            } else if (response.status === 200) {
-                navigate("/consumables")
-            } else if (response.status === 404) {
-                toastError("User not found");
-            } else {
-                toastError("Something went wrong");
-            }
+            if (!response.ok) {
+                    toastError((await response.json()).message);
+                } else {
+                    navigate("/dashboard");
+                }
         } catch (error) {
             toastError("Something went wrong");
             console.log(error);
