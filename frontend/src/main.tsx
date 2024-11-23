@@ -18,6 +18,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Help from './pages/Help'
+import AdminPage from './pages/AddAdmin'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_OAUTH_CID}>
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path='/category' element={<AddCategoryTypePage />} />
             <Route path='/report' element={<Report />} />
             <Route path='/help' element={<Help />} />
+            <Route path='/admin' element={<AdminPage />} />
           </Route>
           <Route path='/login' element={<LoginPage />} />
         </Routes>
