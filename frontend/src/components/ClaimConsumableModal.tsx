@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Modal, Label, TextInput, Select } from 'flowbite-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Modal, Label, TextInput } from 'flowbite-react';
+import { Search } from 'lucide-react';
 import { toastError, toastSuccess } from '../toasts';
 
 interface Consumable {
@@ -20,6 +21,87 @@ interface ClaimConsumableModalProps {
   consumable: Consumable | null;
   onClaimSuccess: () => void;
 }
+
+const SearchableSelect = ({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder,
+  disabled}: { 
+  options: Person[], 
+  value: string, 
+  onChange: (value: string) => void,
+  placeholder: string,
+  disabled: boolean,
+  id: string
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(option =>
+    option.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectedPerson = options.find(option => option._id === value);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div
+        className="w-full cursor-pointer bg-white border border-gray-300 rounded-lg p-2.5 flex items-center justify-between"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <span className={`block truncate ${!selectedPerson ? 'text-gray-500' : ''}`}>
+          {selectedPerson ? selectedPerson.name : placeholder}
+        </span>
+        <Search className="h-4 w-4 text-gray-500" />
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+          <div className="p-2">
+            <TextInput
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <ul className="max-h-60 overflow-auto">
+            {filteredOptions.map((option) => (
+              <li
+                key={option._id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  onChange(option._id);
+                  setIsOpen(false);
+                  setSearchTerm('');
+                }}
+              >
+                {option.name}
+              </li>
+            ))}
+            {filteredOptions.length === 0 && (
+              <li className="px-4 py-2 text-gray-500">No results found</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
   isOpen,
@@ -47,8 +129,6 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
       const apiUrl = `${baseUrl}/people`;
 
-      console.log('Fetching people from:', apiUrl); // Debug log
-
       const response = await fetch(apiUrl, {
         headers: { 
           'Content-Type': 'application/json',
@@ -58,9 +138,6 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Response status:', response.status);
-        console.error('Response text:', errorText);
         throw new Error(`Failed to fetch people list: ${response.status}`);
       }
 
@@ -110,8 +187,6 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
       const apiUrl = `${baseUrl}/consumable/claim/${consumable?._id}`;
 
-      console.log('Claiming consumable at:', apiUrl); // Debug log
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -126,27 +201,24 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
         }),
       });
 
-      // If response is not JSON, get the text content for debugging
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text();
-        console.error('Received non-JSON response:', textResponse);
         throw new Error('Received non-JSON response from server');
       }
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to issue consumable');
+        throw new Error(data.message || 'Failed to claim consumable');
       }
 
-      toastSuccess(data.message || 'Consumable issued successfully');
+      toastSuccess(data.message || 'Consumable claimed successfully');
       onClaimSuccess();
       onClose();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toastError(errorMessage);
-      console.error('Error issuing consumable:', error);
+      console.error('Error claiming consumable:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -164,19 +236,19 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
             <strong>Available Quantity:</strong> {consumable?.availableQuantity}
           </p>
           <div>
-    <strong>Category Details:</strong>
-    {consumable?.categoryFields && Object.keys(consumable.categoryFields).length > 0 ? (
-      <ul className="ml-4 list-disc">
-        {Object.entries(consumable.categoryFields).map(([key, value]) => (
-          <li key={key}>
-            <strong>{key}:</strong> {String(value)}
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p>No category details available.</p>
-    )}
-  </div>
+            <strong>Category Details:</strong>
+            {consumable?.categoryFields && Object.keys(consumable.categoryFields).length > 0 ? (
+              <ul className="ml-4 list-disc">
+                {Object.entries(consumable.categoryFields).map(([key, value]) => (
+                  <li key={key}>
+                    <strong>{key}:</strong> {String(value)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No category details available.</p>
+            )}
+          </div>
           <div>
             <Label htmlFor="claimQuantity" value="Quantity to Issue" />
             <TextInput
@@ -194,40 +266,26 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
 
           <div>
             <Label htmlFor="issuedBy" value="Issued By" />
-            <Select
+            <SearchableSelect
               id="issuedBy"
+              options={people}
               value={issuedBy}
-              onChange={(e) => setIssuedBy(e.target.value)}
+              onChange={setIssuedBy}
+              placeholder="Select Person Issuing"
               disabled={isSubmitting}
-              required
-              className="mt-1"
-            >
-              <option value="">Select Person Issuing</option>
-              {people.map((person) => (
-                <option key={person._id} value={person._id}>
-                  {person.name}
-                </option>
-              ))}
-            </Select>
+            />
           </div>
 
           <div>
             <Label htmlFor="issuedTo" value="Issued To" />
-            <Select
+            <SearchableSelect
               id="issuedTo"
+              options={people}
               value={issuedTo}
-              onChange={(e) => setIssuedTo(e.target.value)}
+              onChange={setIssuedTo}
+              placeholder="Select Person Receiving"
               disabled={isSubmitting}
-              required
-              className="mt-1"
-            >
-              <option value="">Select Person Receiving</option>
-              {people.map((person) => (
-                <option key={person._id} value={person._id}>
-                  {person.name}
-                </option>
-              ))}
-            </Select>
+            />
           </div>
         </div>
       </Modal.Body>
@@ -236,7 +294,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
           Cancel
         </Button>
         <Button color="blue" onClick={handleClaimConsumable} disabled={isSubmitting}>
-          {isSubmitting ? 'Issuing...' : 'Issue'}
+          {isSubmitting ? 'Claiming...' : 'Issue'}
         </Button>
       </Modal.Footer>
     </Modal>
