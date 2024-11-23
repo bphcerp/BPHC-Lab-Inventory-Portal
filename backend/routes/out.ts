@@ -19,7 +19,7 @@ async function generateReferenceNumber() {
   // Get the latest transaction count for the current financial year
   const latestTransaction = await ConsumableTransactionModel
     .findOne({
-      referenceNumber: new RegExp(`BITS/UTIL/${financialYear}/`)
+      referenceNumber: new RegExp(`LAMBDA/UTL/${financialYear}/`)
     })
     .sort({ referenceNumber: -1 });
 
@@ -29,7 +29,7 @@ async function generateReferenceNumber() {
     nextNumber = lastNumber + 1;
   }
 
-  return `BITS/UTIL/${financialYear}/${nextNumber.toString().padStart(4, '0')}`;
+  return `LAMBDA/UTL/${financialYear}/${nextNumber.toString().padStart(3, '0')}`;
 }
 
 router.use(authenticateToken);
