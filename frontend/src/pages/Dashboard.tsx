@@ -94,6 +94,7 @@ const Dashboard: React.FC = () => {
     {
       header: 'Available',
       accessorKey: 'availableQuantity',
+      enableColumnFilter: false,
       meta: {
         getSum: true
       }
@@ -101,6 +102,7 @@ const Dashboard: React.FC = () => {
     {
       header: 'Unit Price',
       accessorKey: 'unitPrice',
+      enableColumnFilter: false,
       cell: ({ getValue }) => `₹${(getValue() as number).toFixed(2)}`,
       meta: {
         getSum: true,
