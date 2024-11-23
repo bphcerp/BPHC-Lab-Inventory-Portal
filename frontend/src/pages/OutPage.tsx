@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Spinner } from 'flowbite-react';
+import { Button } from 'flowbite-react';
 import { toastError } from '../toasts';
 import ClaimConsumableModal from '../components/ClaimConsumableModal';
+import TableCustom from '../components/TableCustom';
+import { ColumnDef } from '@tanstack/react-table';
 
 interface Consumable {
   _id: string;
@@ -15,7 +17,52 @@ const OutPage: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [selectedConsumable, setSelectedConsumable] = useState<Consumable | null>(null);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  const columns: ColumnDef<Consumable>[] = [
+    {
+      header: 'Name',
+      accessorKey: 'consumableName',
+      meta: {
+        filterType: 'dropdown'
+      }
+    },
+    {
+      header: 'Available',
+      accessorKey: 'availableQuantity',
+      enableColumnFilter: false
+    },
+  ];
+
+  const attributeColumns = Array.from({ length: 4 }).map((_, index) => ({
+    id: `attribute${index + 1}`,
+    header: `Attribute ${index + 1}`,
+    accessorFn: (row: Consumable) => {
+      const categoryFields = row.categoryFields || {};
+      const fieldEntries = Object.entries(categoryFields);
+      const [key, value] = fieldEntries[index] || [];
+      return key && value ? `${key}: ${value}` : '';
+    },
+    meta: {
+      filterType: "dropdown" as const
+    }
+  }));
+
+  const actionsColumn: ColumnDef<Consumable> = {
+    header: 'Actions',
+    cell: ({ row }) => (
+      <div className="flex justify-center">
+        <Button
+          color="blue"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+          onClick={() => openClaimModal(row.original)}
+        >
+          Issue
+        </Button>
+      </div>
+    ),
+  };
+
+  const combinedColumns = [...columns, ...attributeColumns, actionsColumn] as ColumnDef<Consumable>[];
 
   const fetchConsumables = async () => {
     try {
@@ -43,8 +90,6 @@ const OutPage: React.FC = () => {
     } catch (error) {
       toastError("Error fetching consumables");
       console.error("Error fetching consumables:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -66,60 +111,21 @@ const OutPage: React.FC = () => {
     closeClaimModal();
   };
 
-  // Add loading state
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
-        <Spinner size="xl" />
-      </div>
-    );
-  }
+  const initialState = {
+    pagination: {
+      pageSize: 10,
+    },
+  };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-semibold mb-8 text-center text-gray-900">Issue Consumable</h1>
       {consumables.length > 0 ? (
-          <table className="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
-            <thead>
-              <tr className="bg-gray-100 text-gray-600 uppercase text-sm font-semibold">
-                <th className="py-3 px-4 border-b border-gray-200 text-left">Name</th>
-                <th className="py-3 px-4 border-b border-gray-200 text-left">Available</th>
-                <th className="py-3 px-4 border-b border-gray-200 text-left">Description</th>
-                <th className="py-3 px-4 border-b border-gray-200 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {consumables.map((consumable, index) => (
-                <tr
-                  key={consumable._id}
-                  className={`hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-                >
-                  <td className="py-2 px-4 border-b border-gray-200 text-gray-700 text-sm">{consumable.consumableName}</td>
-                  <td className="py-2 px-4 border-b border-gray-200 text-gray-700 text-sm">{consumable.availableQuantity}</td>
-                 <td className="py-3 px-4 text-gray-800">
-                    {consumable.categoryFields && Object.keys(consumable.categoryFields).length > 0 ? (
-                      Object.entries(consumable.categoryFields).map(([key, value]) => (
-                        <div key={`${key}-${value}`}>
-                          <strong>{key}:</strong> {value}
-                        </div>
-                      ))
-                    ) : (
-                      <div>N/A</div>
-                    )}
-                  </td>
-                  <td className="py-2 px-4 border-b border-gray-200 text-center flex justify-center items-center">
-                    <Button
-                      color="blue"
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
-                      onClick={() => openClaimModal(consumable)}
-                    >
-                      Issue
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <TableCustom
+          data={consumables}
+          initialState={initialState}
+          columns={combinedColumns}
+        />
       ) : (
         <p className="text-center text-gray-600">No consumables available to issue.</p>
       )}
