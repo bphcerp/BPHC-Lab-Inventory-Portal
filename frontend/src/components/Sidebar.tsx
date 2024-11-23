@@ -7,6 +7,7 @@ import { MdOutlineSpaceDashboard } from "react-icons/md";
 import { IoMdPeople, IoMdHelpBuoy } from "react-icons/io";
 import { GrTransaction } from "react-icons/gr";
 import { TbCategoryPlus } from "react-icons/tb";
+import { RiAdminLine } from "react-icons/ri";
 import { AiOutlineCaretDown, AiOutlineSetting } from "react-icons/ai";
 
 interface SidebarProps {
@@ -59,6 +60,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
               <NavItem to="/people" icon={<IoMdPeople />} label="Add User" />
               <NavItem to="/category" icon={<TbCategoryPlus />} label="Add Category" />
               <NavItem to="/report" icon={<BiSolidFileExport />} label=" Generate Report" />
+              <NavItem to="/admin" icon={<RiAdminLine />} label=" Add Admin" />
             </div>
           )}
         </div>
