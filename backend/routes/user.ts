@@ -38,15 +38,16 @@ router.post('/login', async (req: Request, res: Response) => {
 
         const { name, email } = ticket.getPayload() as any;
         let user = await UserModel.findOne({ email });
-
         if (!user) {
-            user = new UserModel({
-                name,
-                email,
-                isAdmin: false,
-            });
-            await user.save();
-        }
+			res.status(401).send({message : "You are not allowed to login to this portal. Please contact LAMBDA Lab."})
+			return
+		}
+
+		if (!user.name) {
+			user.name = name;
+			await user.save();
+		}
+
 
         // Generate JWT token
         const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET_KEY!, { expiresIn: '1h' });
