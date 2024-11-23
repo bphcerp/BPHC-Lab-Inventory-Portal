@@ -7,38 +7,62 @@ import { authenticateToken } from "../middleware/authenticateToken";
 
 dotenv.config();
 
-const router: Router = Router();
+const router: Router = Router()
 
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
+	try {
+		const users = await UserModel.find().select('name email');
+		res.json(users);
+	} catch (error) {
+		res.status(500).json({ message: 'Error fetching users', error });
+	}
+});
+
+router.post('/', authenticateToken, async (req: Request, res: Response) => {
     try {
-        const users = await UserModel.find();
-        res.json(users);
+        const { name, email } = req.body;
+
+        const existingUser = await UserModel.findOne({ email });
+        if (existingUser) {
+            res.status(400).json({ message: 'User already exists' });
+			return
+        }
+
+        const newUser = new UserModel({ name, email });
+        await newUser.save();
+
+        res.status(201).json(newUser);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching users', error });
+        res.status(500).json({ message: 'Error creating user', error });
     }
 });
 
+
 router.post('/logout', authenticateToken, async (req: Request, res: Response) => {
-    res.clearCookie('token', {
-        httpOnly: true,
-        sameSite: 'lax',
-    });
-    res.status(200).json({ message: 'Logged out successfully' });
-});
+	res.clearCookie('token', {
+		secure : process.env.DEPLOYED_STATUS === "true",
+		httpOnly: true,
+		sameSite: process.env.DEPLOYED_STATUS === "true" ? "none" : "lax",
+	});
+
+	res.status(200).json({ message: 'Logged out successfully' });
+})
 
 router.post('/login', async (req: Request, res: Response) => {
-    const credentialResponse = req.body;
-    const client = new OAuth2Client(process.env.OAUTH_CID);
+	const credentialResponse = req.body;
+	const client = new OAuth2Client()
 
-    try {
-        const ticket = await client.verifyIdToken({
-            idToken: credentialResponse.credential,
-            audience: process.env.OAUTH_CID,
-        });
+	try {
+		const ticket = await client.verifyIdToken({
+			idToken: credentialResponse.credential,
+			audience: process.env.OAUTH_CID
+		});
 
-        const { name, email } = ticket.getPayload() as any;
-        let user = await UserModel.findOne({ email });
-        if (!user) {
+		const { name, email } = ticket.getPayload() as any;
+
+		let user = await UserModel.findOne({ email });
+
+		if (!user) {
 			res.status(401).send({message : "You are not allowed to login to this portal. Please contact LAMBDA Lab."})
 			return
 		}
@@ -48,84 +72,70 @@ router.post('/login', async (req: Request, res: Response) => {
 			await user.save();
 		}
 
-
-        // Generate JWT token
-        const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET_KEY!, { expiresIn: '1h' });
-
-        res.cookie("token", token, {
-            secure: process.env.DEPLOYED_STATUS === "true",
-            httpOnly: true,
-            sameSite: process.env.DEPLOYED_STATUS === "true" ? "none" : "lax",
-        });
-
-        // Send response only with a success message (no token in the body)
-        res.status(200).json({ message: "Login Successful" });
-
-    } catch (error) {
-        console.error(error);
-        res.status(403).json({ message: "Invalid Credentials" });
-    }
+		res.cookie("token", credentialResponse.credential, {
+			secure: process.env.DEPLOYED_STATUS === "true",
+			httpOnly: true,
+			sameSite: process.env.DEPLOYED_STATUS === "true" ? "none" : "lax"
+		});
+		res.send({message : "Login Successful"});
+	} catch (error) {
+		console.error(error);
+		res.status(403).send({message : "Invalid Credentials"});
+	}
 });
-
 
 router.post('/passlogin', async (req: Request, res: Response) => {
-    const { email, pwd } = req.body;
-    const result = await UserModel.findOne({ email }).lean();
-    if (!result) {
-        res.status(404).json({ message: 'No user found' });
-        return;
-    }
+	const { email, pwd } = req.body
+	const result = await UserModel.findOne({ email }).lean()
+	if (!result) {
+		res.status(404).send({message: `No user found`})
+		return
+	}
 
-    const resultPasswordHidden = { ...result, pwd: "" };
+	const resultPasswordHidden = { ...result, pwd: "" }
 
-    if (result!.pwd === pwd) {
-        const jwtSecretKey = process.env.JWT_SECRET_KEY!;
-        const token = jwt.sign(resultPasswordHidden, jwtSecretKey, { expiresIn: "1h" });
-
-        res.cookie("token", token, {
-            expires: new Date(Date.now() + 3600 * 1000),
-            path: "/",
-            httpOnly: true,
-            secure: process.env.DEPLOYED_STATUS === "true",
-            sameSite: process.env.DEPLOYED_STATUS === "true" ? "none" : "lax",
-        });
-
-        // Send token in response body
-        res.status(200).json({ message: "Login Successful", token });
-    } else {
-        res.status(401).json({ message: "Wrong Credentials" });
-    }
-});
+	if (result!.pwd === pwd) {
+		const jwtSecretKey = process.env.JWT_SECRET_KEY!;
+		const token = jwt.sign(resultPasswordHidden, jwtSecretKey)
+		res.cookie("token", token, {
+			expires: new Date(Date.now() + 3600 * 1000),
+			path: "/",
+			httpOnly: true,
+			secure: process.env.DEPLOYED_STATUS === "true",
+			sameSite: process.env.DEPLOYED_STATUS === "true" ? "none" : "lax"
+		})
+		res.send({message : "Login Successful"})
+	}
+	else res.status(401).send({message : `Wrong Credentials`})
+})
 
 router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
-    try {
-        const { name, email, isAdmin } = req.body;
-        const updatedUser = await UserModel.findByIdAndUpdate(
-            req.params.id,
-            { name, email, isAdmin },
-            { new: true }
-        );
-        if (!updatedUser) {
-            res.status(404).json({ message: 'User not found' });
-        } else {
-            res.json(updatedUser);
-        }
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating user', error });
-    }
+	try {
+		const { name, email } = req.body;
+		const updatedUser = await UserModel.findByIdAndUpdate(
+			req.params.id,
+			{ name, email },
+			{ new: true }
+		);
+		if (!updatedUser) {
+			res.status(404).json({ message: 'User not found' })
+		}
+		else res.json(updatedUser);
+	} catch (error) {
+		res.status(500).json({ message: 'Error updating user', error });
+	}
 });
 
 router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
-    try {
-        const deletedUser = await UserModel.findByIdAndDelete(req.params.id);
-        if (!deletedUser) {
-            res.status(404).json({ message: 'User not found' });
-        } else {
-            res.status(204).send();
-        }
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting user', error });
-    }
+	try {
+		const deletedUser = await UserModel.findByIdAndDelete(req.params.id);
+		if (!deletedUser) {
+			res.status(404).json({ message: 'User not found' })
+		}
+		else res.status(204).send()
+	} catch (error) {
+		res.status(500).json({ message: 'Error deleting user', error })
+	}
 });
 
-export default router;
+export default router
