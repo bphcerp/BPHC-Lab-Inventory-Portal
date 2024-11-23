@@ -209,16 +209,16 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to claim consumable');
+        throw new Error(data.message || 'Failed to issue consumable');
       }
 
-      toastSuccess(data.message || 'Consumable claimed successfully');
+      toastSuccess(data.message || 'Consumable issued successfully');
       onClaimSuccess();
       onClose();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toastError(errorMessage);
-      console.error('Error claiming consumable:', error);
+      console.error('Error issuing consumable:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -294,7 +294,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
           Cancel
         </Button>
         <Button color="blue" onClick={handleClaimConsumable} disabled={isSubmitting}>
-          {isSubmitting ? 'Claiming...' : 'Issue'}
+          {isSubmitting ? 'Issuing...' : 'Issue'}
         </Button>
       </Modal.Footer>
     </Modal>
