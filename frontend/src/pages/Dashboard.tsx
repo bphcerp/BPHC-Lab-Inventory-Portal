@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Spinner } from 'flowbite-react';
 import { toastError } from '../toasts';
 import TableCustom from '../components/TableCustom';
 import { ColumnDef } from '@tanstack/react-table';
@@ -10,7 +9,7 @@ export interface Consumable {
   consumableName: string;
   quantity: number;
   availableQuantity: number;
-  unitPrice: number;
+  totalConsumableCost: number;
   addedBy: string;
   vendor: { name: string } | string;
   categoryFields?: { [key: string]: any };
@@ -20,8 +19,7 @@ const Dashboard: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [searchText] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedConsumable, setSelectedConsumable] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [modalConsumable, setModalConsumable] = useState<Consumable | null>(null);
 
   const fetchConsumables = async () => {
     try {
@@ -47,8 +45,6 @@ const Dashboard: React.FC = () => {
       toastError('Error fetching consumables');
       console.error('Error fetching consumables:', error);
       setConsumables([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -59,8 +55,8 @@ const Dashboard: React.FC = () => {
     return 'bg-green-100 text-green-700 border border-green-300';
   };
 
-  const handleConsumableClick = (consumableName: string) => {
-    setSelectedConsumable(consumableName);
+  const handleConsumableClick = (consumable: Consumable) => {
+    setModalConsumable(consumable);
     setIsModalOpen(true);
   };
 
@@ -77,7 +73,7 @@ const Dashboard: React.FC = () => {
         const consumable = row.original;
         return (
           <button
-            onClick={() => handleConsumableClick(consumable.consumableName)}
+            onClick={() => handleConsumableClick(consumable)}
             className={`px-3 py-1 rounded-full text-sm font-medium ${getPillClass(
               consumable.availableQuantity,
               consumable.quantity
@@ -94,21 +90,24 @@ const Dashboard: React.FC = () => {
     {
       header: 'Available',
       accessorKey: 'availableQuantity',
-      enableColumnFilter: false,
       meta: {
         getSum: true
       }
     },
     {
-      header: 'Unit Price',
-      accessorKey: 'unitPrice',
+      header: 'Total Cost',
+      accessorKey: 'totalConsumableCost',
       enableColumnFilter: false,
-      cell: ({ getValue }) => `₹${(getValue() as number).toFixed(2)}`,
+      cell: ({ getValue }) => {
+        const value = getValue() as number | null | undefined;
+        return value != null ? `₹${value}` : '';
+      },
       meta: {
         getSum: true,
         sumFormatter: (sum: number) => `₹${sum.toFixed(2)}`
       }
     }
+
   ];
 
   const attributeColumns = Array.from({ length: 4 }).map((_, index) => ({
@@ -126,15 +125,6 @@ const Dashboard: React.FC = () => {
   }));
 
   const combinedColumns = [...columns, ...attributeColumns] as ColumnDef<Consumable>[];
-
-  if (loading) {
-  return (
-    <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
-      <Spinner size="xl" />
-    </div>
-  );
-}
-
 
   return (
     <div className="container mx-auto p-4">
@@ -165,8 +155,11 @@ const Dashboard: React.FC = () => {
 
       <ConsumableDetailsModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        consumableName={selectedConsumable}
+        onClose={() => {
+          setIsModalOpen(false);
+          setModalConsumable(null);
+        }}
+        consumable={modalConsumable}
       />
     </div>
   );
