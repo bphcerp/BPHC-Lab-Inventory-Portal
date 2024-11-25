@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextInput, Spinner } from 'flowbite-react';
+import { Button, TextInput } from 'flowbite-react';
 import { toastError } from '../toasts';  
 import AddConsumableModal from '../components/AddConsumableModal';
 
 export interface Consumable {
   _id: string;
   consumableName: string;
-  quantity: number;
-  availableQuantity: number;
-  unitPrice: number;
+  quantity: number;      // Total/initial quantity
+  availableQuantity: number;  // Current available quantity
+  totalConsumableCost: number;
   addedBy: string;
   vendor: { name: string } | string;
   categoryFields?: { [key: string]: any };
@@ -18,7 +18,6 @@ const ConsumablesPage: React.FC = () => {
   const [consumables, setConsumables] = useState<Consumable[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [loading, setLoading] = useState(true);
 
   const fetchConsumables = async () => {
     try {
@@ -44,8 +43,6 @@ const ConsumablesPage: React.FC = () => {
       toastError('Error fetching consumables');
       console.error('Error fetching consumables:', error);
       setConsumables([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -68,7 +65,6 @@ const ConsumablesPage: React.FC = () => {
       setConsumables(prevConsumables => {
         const existingIndex = prevConsumables.findIndex(c => 
           c.consumableName === updatedConsumable.consumableName && 
-          c.unitPrice === updatedConsumable.unitPrice &&
           JSON.stringify(c.categoryFields) === JSON.stringify(updatedConsumable.categoryFields)
         );
 
@@ -91,21 +87,12 @@ const ConsumablesPage: React.FC = () => {
   );
 
   const getRowKey = (consumable: Consumable) => {
-    return `${consumable.consumableName}-${consumable.unitPrice}-${JSON.stringify(consumable.categoryFields)}`;
+    return `${consumable.consumableName}-${JSON.stringify(consumable.categoryFields)}`;
   };
 
   useEffect(() => {
     fetchConsumables();
   }, []);
-
-  // Add loading state
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex justify-center items-center bg-white/50 z-50">
-        <Spinner size="xl" />
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-4">
@@ -135,7 +122,8 @@ const ConsumablesPage: React.FC = () => {
               <th className="py-3 px-4">Category Fields</th>
               <th className="py-3 px-4">Quantity</th>
               <th className="py-3 px-4">Available</th>
-              <th className="py-3 px-4">Unit Price</th>
+              <th className="py-3 px-4">Total Cost</th>
+              
             </tr>
           </thead>
           <tbody>
@@ -156,7 +144,8 @@ const ConsumablesPage: React.FC = () => {
                   </td>
                   <td className="py-3 px-4 text-gray-800">{consumable.quantity}</td>
                   <td className="py-3 px-4 text-gray-800">{consumable.availableQuantity}</td>
-                  <td className="py-3 px-4 text-gray-800">₹{consumable.unitPrice.toFixed(2)}</td>
+                  <td className="py-3 px-4 text-gray-800">{consumable.totalConsumableCost}</td>
+  
                 </tr>
               ))
             ) : (
