@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Spinner } from 'flowbite-react';
 import { toastError } from '../toasts';
+import { Consumable } from '../pages/Dashboard';
 
 interface Transaction {
   _id: string;
@@ -18,28 +19,35 @@ interface Transaction {
 interface ConsumableDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  consumableName: string;
+  consumable: Consumable | null;
 }
 
 const ConsumableDetailsModal: React.FC<ConsumableDetailsModalProps> = ({
   isOpen,
   onClose,
-  consumableName
+  consumable
 }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && consumableName) {
+    if (isOpen && consumable) {
       fetchTransactions();
     }
-  }, [isOpen, consumableName]);
+  }, [isOpen, consumable]);
 
   const fetchTransactions = async () => {
+    if (!consumable) return;
+    
     setLoading(true);
     try {
+      const queryParams = new URLSearchParams({
+        consumableName: consumable.consumableName,
+        categoryFields: JSON.stringify(consumable.categoryFields || {})
+      });
+
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/consumable-details/${consumableName}`,
+        `${import.meta.env.VITE_BACKEND_URL}/consumable-details?${queryParams}`,
         { credentials: 'include' }
       );
 
@@ -102,7 +110,7 @@ const ConsumableDetailsModal: React.FC<ConsumableDetailsModalProps> = ({
   return (
     <Modal show={isOpen} onClose={onClose} size="7xl">
       <Modal.Header>
-        Transaction History for {consumableName}
+        Transaction History for {consumable?.consumableName}
       </Modal.Header>
       <Modal.Body>
         {loading ? (
