@@ -14,7 +14,8 @@ interface IConsumableBase {
     unitPrice: number;
     vendor: mongoose.Types.ObjectId;
     date: Date;
-    totalCost?: number;
+    totalConsumableCost: number;
+    totalCost: number;
     categoryFields?: { [key: string]: any };
     addedBy: mongoose.Types.ObjectId;
     issuedBy?: mongoose.Types.ObjectId;
@@ -44,6 +45,7 @@ const ConsumableSchema = new Schema<IConsumable>(
         vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'vendors', required: true },
         date: { type: Date, default: Date.now, required: true },
         totalCost: { type: Number },
+        totalConsumableCost: { type: Number },
         categoryFields: { type: mongoose.Schema.Types.Mixed, default: {} },
         addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'People', required: true },
         issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'People' },
@@ -60,8 +62,10 @@ ConsumableSchema.pre('save', async function (next) {
     this.updatedAt = new Date();
     
     let quantityChange = 0;
+    let updatedTotalCost = 0;
     if (this.isNew) {
         quantityChange = this.quantity;
+        updatedTotalCost = this.totalConsumableCost + this.totalCost;
     } else if (this.isModified('quantity')) {
         const originalDoc = await ConsumableModel.findById(this._id);
         if (originalDoc) {
@@ -71,7 +75,10 @@ ConsumableSchema.pre('save', async function (next) {
 
     if (this.isModified('quantity') || this.isModified('unitPrice')) {
         this.totalCost = this.quantity * this.unitPrice;
+        updatedTotalCost =  this.totalConsumableCost + this.totalCost;
     }
+
+    
 
     if (quantityChange !== 0) {
         const transaction = new ConsumableTransactionModel({
@@ -80,6 +87,8 @@ ConsumableSchema.pre('save', async function (next) {
             transactionDate: this.date,
             remainingQuantity: this.quantity,
             categoryFields: this.categoryFields,
+            totalCost: this.totalCost,
+            totalConsumableCost: Math.abs(updatedTotalCost),
             addedBy: this.addedBy,
             issuedBy: this.issuedBy,
             issuedTo: this.issuedTo,
@@ -101,7 +110,7 @@ ConsumableSchema.virtual('availableQuantity').get(function () {
 ConsumableSchema.index(
     {
         consumableName: 1,
-        unitPrice: 1,
+        //unitPrice: 1,
         'categoryFields': 1
     }
 );
