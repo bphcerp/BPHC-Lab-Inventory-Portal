@@ -6,6 +6,7 @@ interface IConsumableTransaction extends Document {
   transactionQuantity: number;
   referenceNumber: string;
   transactionDate: Date;
+  totalConsumableCost: number;
   remainingQuantity: number;
   categoryFields: { type: mongoose.Schema.Types.Mixed, default: {} },
   addedBy?: mongoose.Schema.Types.ObjectId | IPeople;
@@ -25,6 +26,7 @@ const ConsumableTransactionSchema = new Schema<IConsumableTransaction>({
   transactionDate: { type: Date, default: Date.now, required: true },
   remainingQuantity: { type: Number, required: true },
   categoryFields: { type: mongoose.Schema.Types.Mixed, default: {} },
+  totalConsumableCost: { type: Number },
   addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'People' },
   issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'People' },
   issuedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'People' },
