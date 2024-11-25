@@ -27,14 +27,20 @@ router.post(
     const { 
       consumableName,
       quantity, 
-      unitPrice, 
+      //unitPrice, 
       vendor, 
+      totalCost,
       date, 
       categoryFields, 
       addedBy 
     } = req.body;
 
-    if (!consumableName || !quantity || !unitPrice || !addedBy) {
+    // if (!consumableName || !quantity || !unitPrice || !addedBy) {
+    //   res.status(400).json({ message: 'Missing required fields' });
+    //   return;
+    // }
+
+    if (!consumableName || !quantity || !addedBy) {
       res.status(400).json({ message: 'Missing required fields' });
       return;
     }
@@ -58,14 +64,14 @@ router.post(
       
       const query = {
         consumableName: consumableName,
-        unitPrice: Number(unitPrice),
+        //unitPrice: Number(unitPrice),
         categoryFields: normalizedCategoryFields
       };
 
       let savedConsumable = await ConsumableModel.findOneAndUpdate(
         query,
         {
-          $inc: { quantity: Number(quantity) },
+          $inc: { quantity: Number(quantity), totalConsumableCost: Number(totalCost) },
           $setOnInsert: { claimedQuantity: 0 }, // Initialize claimedQuantity to 0 for new consumables
           $set: {
             vendor: vendor,
@@ -94,6 +100,7 @@ router.post(
         transactionQuantity: quantityChange,
         remainingQuantity: savedConsumable.quantity,
         vendor: savedConsumable.vendor,
+        totalCost: savedConsumable.totalCost,
         categoryFields: savedConsumable.categoryFields,
         transactionDate: date || new Date(),
         addedBy,
@@ -187,7 +194,7 @@ router.put(
   '/:id',
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const consumableId = req.params.id;
-    const { consumableName, quantity, unitPrice, vendor, date, categoryFields } = req.body;
+    const { consumableName, quantity, vendor, date, categoryFields } = req.body;
 
     const consumable = await ConsumableModel.findById(consumableId);
     if (!consumable) {
@@ -216,7 +223,7 @@ router.put(
 
     consumable.consumableName = consumableName || consumable.consumableName;
     consumable.quantity = quantity || consumable.quantity;
-    consumable.unitPrice = unitPrice || consumable.unitPrice;
+    //consumable.unitPrice = unitPrice || consumable.unitPrice;
     consumable.vendor = vendor || consumable.vendor;
     consumable.date = date || consumable.date;
     consumable.categoryFields = categoryFields || consumable.categoryFields;
@@ -255,7 +262,7 @@ router.put(
   '/:id',
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const consumableId = req.params.id;
-    const { consumableName, quantity, unitPrice, vendor, date, categoryFields } = req.body;
+    const { consumableName, quantity, vendor, date, categoryFields } = req.body;
 
     const consumable = await ConsumableModel.findById(consumableId);
     if (!consumable) {
@@ -273,7 +280,7 @@ router.put(
 
     consumable.consumableName = consumableName || consumable.consumableName;
     consumable.quantity = quantity || consumable.quantity;
-    consumable.unitPrice = unitPrice || consumable.unitPrice;
+    //consumable.unitPrice = unitPrice || consumable.unitPrice;
     consumable.vendor = vendor || consumable.vendor;
     consumable.date = date || consumable.date;
     consumable.categoryFields = categoryFields || consumable.categoryFields;
