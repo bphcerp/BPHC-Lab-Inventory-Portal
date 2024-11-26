@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextInput, Table, Pagination, Spinner } from 'flowbite-react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
-//import EditVendorModal from '../components/EditVendorModal';
-//import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import EditVendorModal from '../components/EditVendorModal';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import AddVendorModal from '../components/AddVendorModal';
 //import VendorDetailsModal from '../components/VendorDetailsModal';
 
