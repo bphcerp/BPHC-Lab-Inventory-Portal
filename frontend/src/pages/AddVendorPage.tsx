@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextInput, Table, Pagination } from 'flowbite-react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+//import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
 import EditVendorModal from '../components/EditVendorModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -144,7 +144,7 @@ const AddVendorPage: React.FC = () => {
             <Table.HeadCell className="text-center">Name</Table.HeadCell>
             <Table.HeadCell className="text-center">Email</Table.HeadCell>
             <Table.HeadCell className="text-center">Phone</Table.HeadCell>
-            <Table.HeadCell className="text-center">Operations</Table.HeadCell>
+{/*             <Table.HeadCell className="text-center">Operations</Table.HeadCell> */}
           </Table.Head>
           <Table.Body>
             {currentVendors.length > 0 ? (
@@ -158,7 +158,7 @@ const AddVendorPage: React.FC = () => {
                   </Table.Cell>
                   <Table.Cell className="text-center">{vendor.email}</Table.Cell>
                   <Table.Cell className="text-center">{vendor.phone}</Table.Cell>
-                  <Table.Cell className="text-center">
+{/*                   <Table.Cell className="text-center">
                     <div className="flex justify-center gap-3">
                       <button
                         onClick={(e) => {
@@ -179,7 +179,7 @@ const AddVendorPage: React.FC = () => {
                         <FaTrash size={14} />
                       </button>
                     </div>
-                  </Table.Cell>
+                  </Table.Cell> */}
                 </Table.Row>
               ))
             ) : (
