@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextInput, Table, Pagination, Spinner } from 'flowbite-react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
-import EditVendorModal from '../components/EditVendorModal';
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+//import EditVendorModal from '../components/EditVendorModal';
+//import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import AddVendorModal from '../components/AddVendorModal';
 //import VendorDetailsModal from '../components/VendorDetailsModal';
 
@@ -27,8 +27,8 @@ const AddVendorPage: React.FC = () => {
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [searchText, setSearchText] = useState('');
   const [isAddVendorModalOpen, setIsAddVendorModalOpen] = useState(false);
-  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
-  const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
+  //const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  //const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   //const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   //const [vendorConsumables, setVendorConsumables] = useState([]);
@@ -182,7 +182,7 @@ const AddVendorPage: React.FC = () => {
             <Table.HeadCell className="text-center">Name</Table.HeadCell>
             <Table.HeadCell className="text-center">Email</Table.HeadCell>
             <Table.HeadCell className="text-center">Phone</Table.HeadCell>
-            <Table.HeadCell className="text-center">Operations</Table.HeadCell>
+{/*             <Table.HeadCell className="text-center">Operations</Table.HeadCell> */}
           </Table.Head>
           <Table.Body>
             {currentVendors.length > 0 ? (
@@ -201,7 +201,7 @@ const AddVendorPage: React.FC = () => {
                   </Table.Cell>
                   <Table.Cell className="text-center">{vendor.email}</Table.Cell>
                   <Table.Cell className="text-center">{vendor.phone}</Table.Cell>
-                  <Table.Cell className="text-center">
+{/*                   <Table.Cell className="text-center">
                     <div className="flex justify-center gap-3">
                       <button
                         onClick={(e) => {
@@ -222,7 +222,7 @@ const AddVendorPage: React.FC = () => {
                         <FaTrash size={14} />
                       </button>
                     </div>
-                  </Table.Cell>
+                  </Table.Cell> */}
                 </Table.Row>
               ))
             ) : (
@@ -247,7 +247,7 @@ const AddVendorPage: React.FC = () => {
         )}
       </div>
 
-      {editingVendor && (
+{/*       {editingVendor && (
         <EditVendorModal
           isOpen={!!editingVendor}
           onClose={() => setEditingVendor(null)}
@@ -268,7 +268,7 @@ const AddVendorPage: React.FC = () => {
             setFilteredVendors((prev) => prev.filter((vendor) => vendor._id !== id));
           }}
         />
-      )}
+      )} */}
 
       <AddVendorModal
         isOpen={isAddVendorModalOpen}
