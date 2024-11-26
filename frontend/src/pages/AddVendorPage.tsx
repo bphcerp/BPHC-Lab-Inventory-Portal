@@ -5,7 +5,7 @@ import { toastError, toastSuccess } from '../toasts';
 import EditVendorModal from '../components/EditVendorModal';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import AddVendorModal from '../components/AddVendorModal';
-import VendorDetailsModal from '../components/VendorDetailsModal';
+//import VendorDetailsModal from '../components/VendorDetailsModal';
 
 interface Vendor {
   _id: string;
@@ -14,13 +14,13 @@ interface Vendor {
   phone: string;
 }
 
-interface VendorStats {
-  totalTransactions: number;
-  totalSpent: number;
-  uniqueItems: number;
-  mostRecentTransaction: string;
-  oldestTransaction: string;
-}
+// interface VendorStats {
+//   totalTransactions: number;
+//   totalSpent: number;
+//   uniqueItems: number;
+//   mostRecentTransaction: string;
+//   oldestTransaction: string;
+// }
 
 const AddVendorPage: React.FC = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -31,11 +31,11 @@ const AddVendorPage: React.FC = () => {
   const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-  const [vendorConsumables, setVendorConsumables] = useState([]);
-  const [isVendorDetailsModalOpen, setIsVendorDetailsModalOpen] = useState(false);
+  //const [vendorConsumables, setVendorConsumables] = useState([]);
+ // const [isVendorDetailsModalOpen, setIsVendorDetailsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 10;
-  const [vendorStats, setVendorStats] = useState<VendorStats | undefined>(undefined);
+  //const [vendorStats, setVendorStats] = useState<VendorStats | undefined>(undefined);
 
   const fetchVendors = async () => {
     try {
@@ -53,32 +53,32 @@ const AddVendorPage: React.FC = () => {
     }
   };
 
-  const fetchVendorConsumables = async (vendorId: string) => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/transactions/vendor/${vendorId}`,
-        { credentials: 'include' }
-      );
-      const data = await response.json();
-      setVendorConsumables(data.transactions);
-      setVendorStats(data.stats);
-    } catch (error) {
-      toastError('Failed to fetch vendor consumables');
-    }
-  };
+  // const fetchVendorConsumables = async (vendorId: string) => {
+  //   try {
+  //     const response = await fetch(
+  //       `${import.meta.env.VITE_BACKEND_URL}/transactions/vendor/${vendorId}`,
+  //       { credentials: 'include' }
+  //     );
+  //     const data = await response.json();
+  //     setVendorConsumables(data.transactions);
+  //     setVendorStats(data.stats);
+  //   } catch (error) {
+  //     toastError('Failed to fetch vendor consumables');
+  //   }
+  // };
 
-  const handleVendorClick = (vendor: Vendor) => {
-    setSelectedVendor(vendor);
-    fetchVendorConsumables(vendor._id);
-    setIsVendorDetailsModalOpen(true);
-  };
+  // const handleVendorClick = (vendor: Vendor) => {
+  //   setSelectedVendor(vendor);
+  //   fetchVendorConsumables(vendor._id);
+  //   setIsVendorDetailsModalOpen(true);
+  // };
 
-  const closeVendorDetailsModal = () => {
-    setIsVendorDetailsModalOpen(false);
-    setSelectedVendor(null);
-    setVendorConsumables([]);
-    setVendorStats(undefined);
-  };
+  // const closeVendorDetailsModal = () => {
+  //   setIsVendorDetailsModalOpen(false);
+  //   setSelectedVendor(null);
+  //   setVendorConsumables([]);
+  //   setVendorStats(undefined);
+  // };
 
   const addNewVendor = async (vendor: { name: string; phone: string; email: string }) => {
     try {
@@ -188,9 +188,14 @@ const AddVendorPage: React.FC = () => {
             {currentVendors.length > 0 ? (
               currentVendors.map((vendor) => (
                 <Table.Row key={vendor._id}>
-                  <Table.Cell
+{/*                   <Table.Cell
                     onClick={() => handleVendorClick(vendor)}
                     className="cursor-pointer text-center text-blue-600 hover:text-blue-800"
+                  >
+                    {vendor.name}
+                  </Table.Cell> */}
+                  <Table.Cell
+                    className="text-center text-blue-600 hover:text-blue-800"
                   >
                     {vendor.name}
                   </Table.Cell>
@@ -271,7 +276,7 @@ const AddVendorPage: React.FC = () => {
         onAddVendor={addNewVendor}
       />
 
-      {selectedVendor && (
+{/*       {selectedVendor && (
         <VendorDetailsModal
           isOpen={isVendorDetailsModalOpen}
           onClose={closeVendorDetailsModal}
@@ -279,7 +284,7 @@ const AddVendorPage: React.FC = () => {
           consumables={vendorConsumables}
           stats={vendorStats} 
         />
-      )}
+      )} */}
     </div>
   );
 };
