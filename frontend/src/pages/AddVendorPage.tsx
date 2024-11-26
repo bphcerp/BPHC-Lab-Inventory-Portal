@@ -30,7 +30,7 @@ const AddVendorPage: React.FC = () => {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [deletingVendor, setDeletingVendor] = useState<{ _id: string; name: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  //const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   //const [vendorConsumables, setVendorConsumables] = useState([]);
  // const [isVendorDetailsModalOpen, setIsVendorDetailsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
