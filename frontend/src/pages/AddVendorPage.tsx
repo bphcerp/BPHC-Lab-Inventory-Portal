@@ -3,7 +3,7 @@ import { Button, TextInput, Table, Pagination } from 'flowbite-react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
 import EditVendorModal from '../components/EditVendorModal';
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import ConfirmVendorDeleteModal from '../components/ConfirmVendorDeleteModal';
 import AddVendorModal from '../components/AddVendorModal';
 import VendorDetailsModal from '../components/VendorDetailsModal'; // Updated VendorDetailsModal
 
@@ -202,18 +202,17 @@ const AddVendorPage: React.FC = () => {
       )}
 
       {deletingVendor && (
-  <ConfirmDeleteModal
-    isOpen={!!deletingVendor}
-    onClose={() => setDeletingVendor(null)}
-    itemId={deletingVendor.vendorId} // Change to vendorId
-    itemName={deletingVendor.name} // Keep itemName for display
-    deleteEndpoint="vendor"
-    onItemDeleted={(id) => { // Change to use id
-      setVendors((prev) => prev.filter((vendor) => vendor.vendorId !== id));
-      setFilteredVendors((prev) => prev.filter((vendor) => vendor.vendorId !== id));
-    }}
-  />
-)}
+        <ConfirmVendorDeleteModal
+          isOpen={!!deletingVendor}
+          onClose={() => setDeletingVendor(null)}
+          itemName={deletingVendor.name} // Pass vendor name only
+          deleteEndpoint="vendor"
+          onItemDeleted={(name) => {
+            setVendors((prev) => prev.filter((vendor) => vendor.name !== name));
+            setFilteredVendors((prev) => prev.filter((vendor) => vendor.name !== name));
+          }}
+        />
+      )}
 
       <AddVendorModal
         isOpen={isAddVendorModalOpen}
