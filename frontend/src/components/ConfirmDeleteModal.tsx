@@ -5,14 +5,16 @@ import { toastError, toastSuccess } from '../toasts';
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  itemName: string; // Vendor name instead of ID
+  itemId: string; // Changed from itemName to itemId
+  itemName: string; // Keep this for display purposes
   deleteEndpoint: string;
-  onItemDeleted: (name: string) => void;
+  onItemDeleted: (id: string) => void; // Changed parameter type to string
 }
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   isOpen,
   onClose,
+  itemId,
   itemName,
   deleteEndpoint,
   onItemDeleted,
@@ -27,7 +29,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     try {
       // Proceed with deletion
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/${deleteEndpoint}/${itemName}`,
+        `${import.meta.env.VITE_BACKEND_URL}/${deleteEndpoint}/${itemId}`, // Use itemId here
         {
           method: 'DELETE',
           credentials: 'include',
@@ -36,14 +38,14 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete vendor');
+        throw new Error(errorData.message || 'Failed to delete item');
       }
 
-      onItemDeleted(itemName);
-      toastSuccess(`Vendor "${itemName}" deleted successfully`);
+      onItemDeleted(itemId); // Pass itemId
+      toastSuccess(`"${itemName}" deleted successfully`);
       onClose();
     } catch (error) {
-      const errorMessage = (error as Error).message || 'Error deleting vendor';
+      const errorMessage = (error as Error).message || 'Error deleting item';
       setError(errorMessage);
       toastError(errorMessage);
     } finally {
@@ -56,7 +58,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
       <Modal.Header>Confirm Deletion</Modal.Header>
       <Modal.Body>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-        <p>Are you sure you want to delete the vendor "{itemName}"?</p>
+        <p>Are you sure you want to delete "{itemName}"?</p>
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={handleDelete} disabled={loading}>
