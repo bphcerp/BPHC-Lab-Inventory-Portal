@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import transactionsByVendor from './routes/transactionsByVendor';
 import userRoutes from './routes/user';
 //import categoryRoutes from './routes/category';
 import consumableCategoryRoutes from './routes/consumableCategory';
@@ -15,6 +14,7 @@ import reportRoutes from './routes/report';
 import historyRoutes from './routes/history';
 import consumableDetailsRoutes from './routes/consumableDetails';
 import transactionRoutes from './routes/transactionsByPerson';
+import vendorTransactions from './routes/vendorTransactions'
 import { authenticateToken } from './middleware/authenticateToken';
 
 dotenv.config();
@@ -44,10 +44,10 @@ app.use('/api/category', consumableCategoryRoutes);
 app.use('/api/history',historyRoutes);
 app.use('/api/report',reportRoutes);
 app.use('/api/transactions',transactionRoutes);
+app.use('/api/vendorTransactions', vendorTransactions);
 app.use('/api/people',peopleRoutes);
 app.use('/api/consumable-details', consumableDetailsRoutes);
 app.use(express.static("public"));
-app.use('/api/transactions', transactionsByVendor);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Welcome to LAMBDA Inventory System API');
