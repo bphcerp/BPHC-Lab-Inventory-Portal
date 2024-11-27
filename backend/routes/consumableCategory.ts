@@ -149,5 +149,49 @@ router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void>
     }
 }));
 
+// Add this to the existing router file (paste.txt)
+router.delete('/:id', asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+
+        // Validate that the ID is provided
+        if (!id) {
+            console.log('Validation failed: no ID provided');
+            res.status(400).json({ message: 'Category ID is required' });
+            return;
+        }
+
+        // Attempt to find and delete the category
+        const deletedCategory = await ConsumableCategoryModel.findByIdAndDelete(id);
+
+        // Check if the category was found and deleted
+        if (!deletedCategory) {
+            console.log(`Category with ID ${id} not found`);
+            res.status(404).json({ message: 'Category not found' });
+            return;
+        }
+
+        console.log(`Category "${deletedCategory.consumableName}" deleted successfully`);
+        res.status(200).json({ 
+            message: 'Category deleted successfully',
+            deletedCategory: {
+                id: deletedCategory._id,
+                consumableName: deletedCategory.consumableName
+            }
+        });
+    } catch (error: any) {
+        console.error('Error deleting category:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+
+        res.status(500).json({ 
+            message: 'Internal server error while deleting category',
+            error: error.message
+        });
+    }
+}));
+
 
 export default router;
