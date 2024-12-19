@@ -44,7 +44,6 @@ router.post(
   })
 );
 
-
 router.put(
   '/:vendorId',
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -56,7 +55,8 @@ router.put(
       return;
     }
 
-    const vendor = await VendorModel.findOne({ vendorId });
+    // Changed from findOne to findById
+    const vendor = await VendorModel.findById(vendorId);
     if (!vendor) {
       res.status(404).json({ message: `Vendor with ID "${vendorId}" not found` });
       return;
@@ -71,7 +71,6 @@ router.put(
     res.status(200).json(vendor);
   })
 );
-
 
 // Delete a vendor by name
 router.delete(
