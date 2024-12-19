@@ -193,5 +193,127 @@ router.delete('/:id', asyncHandler(async (req: Request, res: Response): Promise<
     }
 }));
 
+router.put('/:id', asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { consumableName, fields } = req.body as ConsumableCategoryRequest;
+
+        // Debug log
+        console.log('Update request:', { id, consumableName, fields });
+
+        // Validate ID
+        if (!id) {
+            res.status(400).json({ message: 'Category ID is required' });
+            return;
+        }
+
+        // Validate consumable name
+        if (!consumableName?.trim()) {
+            res.status(400).json({ message: 'Consumable name is required' });
+            return;
+        }
+
+        // Validate fields array
+        if (!Array.isArray(fields)) {
+            res.status(400).json({ message: 'Fields must be an array' });
+            return;
+        }
+
+        if (fields.length === 0) {
+            res.status(400).json({ message: 'At least one field is required' });
+            return;
+        }
+
+        // Validate each field
+        for (const field of fields) {
+            if (!field.name?.trim()) {
+                res.status(400).json({ message: 'Each field must have a name' });
+                return;
+            }
+
+            if (!Array.isArray(field.values)) {
+                res.status(400).json({ message: 'Field values must be an array' });
+                return;
+            }
+
+            if (field.values.length === 0) {
+                res.status(400).json({ 
+                    message: `Field "${field.name}" must have at least one value` 
+                });
+                return;
+            }
+
+            const hasInvalidValue = field.values.some(value => 
+                typeof value !== 'string' || value.trim() === ''
+            );
+            
+            if (hasInvalidValue) {
+                res.status(400).json({ 
+                    message: `All values for field "${field.name}" must be non-empty strings` 
+                });
+                return;
+            }
+        }
+
+        // Check for existing category with same name (excluding current category)
+        const existingCategory = await ConsumableCategoryModel.findOne({
+            _id: { $ne: id },
+            consumableName: consumableName.trim()
+        });
+
+        if (existingCategory) {
+            res.status(400).json({ 
+                message: `Category with name "${consumableName}" already exists` 
+            });
+            return;
+        }
+
+        // Clean and update the category
+        const cleanedFields = fields.map(field => ({
+            name: field.name.trim(),
+            values: field.values.map(v => v.trim()).filter(v => v !== '')
+        }));
+
+        const updatedCategory = await ConsumableCategoryModel.findByIdAndUpdate(
+            id,
+            {
+                consumableName: consumableName.trim(),
+                fields: cleanedFields
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedCategory) {
+            res.status(404).json({ message: 'Category not found' });
+            return;
+        }
+
+        console.log('Category updated successfully:', updatedCategory);
+        res.status(200).json(updatedCategory);
+    } catch (error: any) {
+        console.error('Error updating category:', error);
+        
+        if (error.name === 'ValidationError') {
+            res.status(400).json({ 
+                message: 'Validation error', 
+                details: error.message 
+            });
+            return;
+        }
+
+        if (error.code === 11000) {
+            res.status(400).json({ 
+                message: 'Duplicate category name' 
+            });
+            return;
+        }
+
+        res.status(500).json({ 
+            message: 'Internal server error while updating category',
+            error: error.message
+        });
+    }
+}));
+
 
 export default router;
