@@ -112,6 +112,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
   const [claimQuantity, setClaimQuantity] = useState<number | string>('');
   const [issuedBy, setIssuedBy] = useState<string>('');
   const [issuedTo, setIssuedTo] = useState<string>('');
+  const [issueDate, setIssueDate] = useState<string>('');
   const [people, setPeople] = useState<Array<Person>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -120,6 +121,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       setClaimQuantity('');
       setIssuedBy('');
       setIssuedTo('');
+      setIssueDate('');
       fetchPeople();
     }
   }, [isOpen]);
@@ -176,6 +178,11 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       return false;
     }
 
+    if (!issueDate) {
+      toastError('Please select the issue date');
+      return false;
+    }
+
     return true;
   };
 
@@ -198,6 +205,7 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
           quantity: Number(claimQuantity),
           issuedBy,
           issuedTo,
+          issueDate: new Date(issueDate).toISOString(),
         }),
       });
 
@@ -261,6 +269,20 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
               min="1"
               max={consumable?.availableQuantity}
               className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="issueDate" value="Date of Issue" />
+            <TextInput
+              id="issueDate"
+              type="date"
+              value={issueDate}
+              onChange={(e) => setIssueDate(e.target.value)}
+              disabled={isSubmitting}
+              required
+              className="mt-1"
+              max={new Date().toISOString().split('T')[0]} // Prevent future dates
             />
           </div>
 
