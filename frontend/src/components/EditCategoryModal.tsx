@@ -6,6 +6,7 @@ import { toastError, toastSuccess } from '../toasts';
 interface Field {
     name: string;
     values: string[];
+    rawInput: string;
 }
 
 interface Category {
@@ -28,23 +29,44 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     onCategoryUpdate
 }) => {
     const [consumableName, setConsumableName] = useState(category.consumableName);
-    const [fields, setFields] = useState<Field[]>(category.fields);
+    const [fields, setFields] = useState<Field[]>([]);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        // Initialize fields with rawInput when category changes
+        const initialFields = category.fields.map(field => ({
+            name: field.name,
+            values: field.values,
+            rawInput: field.values.join(', ')
+        }));
+        setFields(initialFields);
+        setConsumableName(category.consumableName);
+    }, [category]);
 
     const handleFieldChange = (index: number, field: Partial<Field>) => {
         const updatedFields = [...fields];
-        updatedFields[index] = {
-            ...updatedFields[index],
-            ...field,
-            values: field.values
-                ? field.values.map(v => v.trim()).filter(v => v !== '')
-                : updatedFields[index].values
-        };
+        
+        if ('rawInput' in field) {
+            // Handle raw input string
+            const rawInput = field.rawInput || '';
+            updatedFields[index] = {
+                ...updatedFields[index],
+                rawInput,
+                values: rawInput.split(',').map(v => v.trim()).filter(v => v !== '')
+            };
+        } else {
+            // Handle other field changes
+            updatedFields[index] = {
+                ...updatedFields[index],
+                ...field
+            };
+        }
+        
         setFields(updatedFields);
     };
 
     const addField = () => {
-        setFields([...fields, { name: '', values: [] }]);
+        setFields([...fields, { name: '', values: [], rawInput: '' }]);
     };
 
     const removeField = (index: number) => {
@@ -52,16 +74,30 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     };
 
     const handleSubmit = async () => {
-        if (!consumableName.trim()) return;
-
-        const validFields = fields.filter(field =>
-            field.name.trim() && field.values.length > 0
-        );
-
-        if (validFields.length === 0) {
-            toastError('Please add at least one field with values');
+        if (!consumableName.trim()) {
+            toastError('Consumable name is required');
             return;
         }
+
+        const validFields = fields.filter(field => {
+            const hasValidName = field.name.trim() !== '';
+            const hasValidValues = field.rawInput.trim() !== '';
+            return hasValidName && hasValidValues;
+        });
+
+        if (validFields.length === 0) {
+            toastError('Please provide at least one valid field with non-empty values');
+            return;
+        }
+
+        // Process the fields for submission
+        const processedFields = validFields.map(field => ({
+            name: field.name.trim(),
+            values: field.rawInput
+                .split(',')
+                .map(v => v.trim())
+                .filter(v => v !== '')
+        }));
 
         setLoading(true);
         try {
@@ -71,10 +107,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                 credentials: 'include',
                 body: JSON.stringify({
                     consumableName: consumableName.trim(),
-                    fields: validFields.map(field => ({
-                        name: field.name.trim(),
-                        values: field.values.map(v => v.trim())
-                    }))
+                    fields: processedFields
                 }),
             });
 
@@ -93,11 +126,6 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        setConsumableName(category.consumableName);
-        setFields(category.fields);
-    }, [category]);
 
     return (
         <Modal show={isOpen} onClose={onClose}>
@@ -138,10 +166,8 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                                 </div>
                                 <TextInput
                                     placeholder="Enter values separated by commas"
-                                    value={field.values.join(', ')}
-                                    onChange={(e) => handleFieldChange(index, {
-                                        values: e.target.value.split(',')
-                                    })}
+                                    value={field.rawInput}
+                                    onChange={(e) => handleFieldChange(index, { rawInput: e.target.value })}
                                     required
                                 />
                             </div>
