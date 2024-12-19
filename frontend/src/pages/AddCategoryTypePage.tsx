@@ -4,11 +4,12 @@ import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toastError, toastSuccess } from '../toasts';
 import AddConsumableCategoryModal from '../components/AddConsumableCategory';
 import EditCategoryModal from '../components/EditCategoryModal';
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import DeleteConsumableCategoryModal from '../components/DeleteConsumableCategory';
 
 interface Field {
     name: string;
     values: string[];
+    rawInput: string;
 }
 
 interface Category {
@@ -45,7 +46,7 @@ const AddCategoryTypePage: React.FC = () => {
 };
 
 
-    const handleAddCategory = async (consumableName: string, fields: Field[]) => {
+    const handleAddCategory = async (consumableName: string, fields: { name: string; values: string[] }[]) => {
     setLoading(true);
     try {
         // Debug log before sending request
@@ -193,13 +194,12 @@ const AddCategoryTypePage: React.FC = () => {
             )}
 
             {deletingCategory && (
-                <ConfirmDeleteModal
+                <DeleteConsumableCategoryModal
                     isOpen={!!deletingCategory}
                     onClose={() => setDeletingCategory(null)}
-                    itemId={deletingCategory._id}
-                    itemName={deletingCategory.consumableName}
-                    deleteEndpoint="category"
-                    onItemDeleted={(deletedId) => {
+                    categoryId={deletingCategory._id}
+                    categoryName={deletingCategory.consumableName}
+                    onCategoryDeleted={(deletedId) => {
                         setCategories((prev) => prev.filter((category) => category._id !== deletedId));
                         setDeletingCategory(null);
                     }}
