@@ -5,10 +5,10 @@ import { toastError, toastSuccess } from '../toasts';
 import EditVendorModal from '../components/EditVendorModal';
 import ConfirmVendorDeleteModal from '../components/ConfirmVendorDeleteModal';
 import AddVendorModal from '../components/AddVendorModal';
-import VendorDetailsModal from '../components/VendorDetailsModal'; // Updated VendorDetailsModal
+import VendorDetailsModal from '../components/VendorDetailsModal'; 
 
 interface Vendor {
-  vendorId: string; // Added vendorId
+  _id: string;  
   name: string;
   email: string;
   phone: string;
@@ -138,7 +138,7 @@ const AddVendorPage: React.FC = () => {
           <Table.Body>
             {currentVendors.length > 0 ? (
               currentVendors.map((vendor) => (
-                <Table.Row key={vendor.vendorId}>
+                <Table.Row key={vendor._id}>
                   <Table.Cell
                     onClick={() => handleVendorClick(vendor)}
                     className="cursor-pointer text-blue-600 hover:text-blue-800"
@@ -191,13 +191,13 @@ const AddVendorPage: React.FC = () => {
           onClose={() => setEditingVendor(null)}
           vendor={editingVendor}
           onVendorUpdate={(updatedVendor) => {
-            setVendors((prev) =>
-              prev.map((v) => (v.vendorId === updatedVendor.vendorId ? updatedVendor : v))
-            );
-            setFilteredVendors((prev) =>
-              prev.map((v) => (v.vendorId === updatedVendor.vendorId ? updatedVendor : v))
-            );
-          }}
+  setVendors((prev) =>
+    prev.map((v) => (v._id === updatedVendor._id ? updatedVendor : v))
+  );
+  setFilteredVendors((prev) =>
+    prev.map((v) => (v._id === updatedVendor._id ? updatedVendor : v))
+  );
+}}
         />
       )}
 
