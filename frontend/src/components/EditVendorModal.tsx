@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Modal, Button, TextInput } from 'flowbite-react';
 import { toastError, toastSuccess } from '../toasts';
 
+
 interface Vendor {
-  vendorId: string; // Add vendorId to the Vendor interface
+  _id: string;  
   name: string;
   email: string;
   phone: string;
@@ -32,7 +33,7 @@ const EditVendorModal: React.FC<EditVendorModalProps> = ({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/vendor/${vendor.vendorId}`, // Use vendorId here
+        `${import.meta.env.VITE_BACKEND_URL}/vendor/${vendor._id}`, 
         {
           method: 'PUT',
           headers: {
