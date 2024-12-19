@@ -40,10 +40,10 @@ router.post(
   '/claim/:id',
   asyncHandler(async (req: Request, res: Response) => {
     const consumableId = req.params.id;
-    const { quantity, issuedBy, issuedTo } = req.body;
+    const { quantity, issuedBy, issuedTo, issueDate } = req.body;
 
     // Input validation
-    if (!consumableId || !quantity || !issuedBy || !issuedTo) {
+    if (!consumableId || !quantity || !issuedBy || !issuedTo|| !issueDate) {
       res.status(400).json({ 
         message: 'Missing required fields. Please provide consumableId, quantity, issuedBy, and issuedTo.' 
       });
@@ -83,6 +83,12 @@ router.post(
       return;
     }
 
+    const parsedDate = new Date(issueDate);
+    if (isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
+      res.status(400).json({ message: 'Invalid issue date.' });
+      return;
+    }
+
     try {
       // Generate reference number
       const referenceNumber = await generateReferenceNumber();
@@ -113,7 +119,8 @@ router.post(
         referenceNumber,
         issuedBy,
         issuedTo,
-        transactionType: 'ISSUE'
+        transactionType: 'ISSUE',
+        transactionDate: parsedDate
       });
 
       await transaction.save();
@@ -121,7 +128,7 @@ router.post(
       // Return success response with updated data and populated people information
       res.status(200).json({
         success: true,
-        message: 'Consumable claimed successfully',
+        message: 'Consumable issued successfully',
         data: {
           consumable: updatedConsumable,
           transaction: await ConsumableTransactionModel.findById(transaction._id)
