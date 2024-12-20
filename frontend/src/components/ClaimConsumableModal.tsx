@@ -282,7 +282,6 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
               disabled={isSubmitting}
               required
               className="mt-1"
-              max={new Date().toISOString().split('T')[0]} // Prevent future dates
             />
           </div>
 
