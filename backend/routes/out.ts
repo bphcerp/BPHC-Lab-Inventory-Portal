@@ -9,14 +9,18 @@ const router = express.Router();
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler =>
   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// Utility function to generate reference number
-async function generateReferenceNumber() {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const nextYear = currentDate.getMonth() >= 3 ? currentYear + 1 : currentYear;
-  const financialYear = `${currentYear}-${nextYear.toString().slice(2)}`;
+// Utility function to generate reference number based on transaction date
+async function generateReferenceNumber(transactionDate: Date) {
+  const year = transactionDate.getFullYear();
+  const month = transactionDate.getMonth(); // 0-11 where 0 is January
   
-  // Get the latest transaction count for the current financial year
+  // If month is January-March (0-2), use previous year as start
+  // If month is April-December (3-11), use current year as start
+  const financialYearStart = month <= 2 ? year - 1 : year;
+  const financialYearEnd = financialYearStart + 1;
+  const financialYear = `${financialYearStart}-${financialYearEnd.toString().slice(2)}`;
+  
+  // Get the latest transaction count for the specified financial year
   const latestTransaction = await ConsumableTransactionModel
     .findOne({
       referenceNumber: new RegExp(`LAMBDA/UTL/${financialYear}/`)
@@ -33,7 +37,6 @@ async function generateReferenceNumber() {
 }
 
 router.use(authenticateToken);
-
 
 // POST /api/consumable/claim/:id - Claim a consumable
 router.post(
@@ -84,14 +87,14 @@ router.post(
     }
 
     const parsedDate = new Date(issueDate);
-    if (isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
-      res.status(400).json({ message: 'Invalid issue date.' });
+    if (isNaN(parsedDate.getTime())) {
+      res.status(400).json({ message: 'Invalid issue date format.' });
       return;
     }
 
     try {
-      // Generate reference number
-      const referenceNumber = await generateReferenceNumber();
+      // Generate reference number using the transaction date
+      const referenceNumber = await generateReferenceNumber(parsedDate);
 
       // Update consumable quantities
       const updatedConsumable = await ConsumableModel.findByIdAndUpdate(
