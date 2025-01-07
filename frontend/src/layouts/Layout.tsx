@@ -4,7 +4,7 @@ import { RxHamburgerMenu, RxCross2 } from "react-icons/rx";
 import SidebarComponent from "../components/Sidebar";
 
 const Layout: FunctionComponent = () => {
-  const [isSideBarOpen, setISSideBarOpen] = useState(false);
+  const [isSideBarOpen, setIsSideBarOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -15,21 +15,25 @@ const Layout: FunctionComponent = () => {
     navigate("/login");
   };
 
+  const handleCloseSidebar = () => {
+    setIsSideBarOpen(false);
+  };
+
   return (
     <div className="flex flex-col w-screen h-screen">
-      <SidebarComponent isOpen={isSideBarOpen} />
+      <SidebarComponent isOpen={isSideBarOpen} onClose={handleCloseSidebar} />
       <div className="header relative flex w-full h-14 px-4 bg-gray-100 shadow-lg items-center justify-between">
         <div className="flex items-center space-x-3">
           {isSideBarOpen ? (
             <RxCross2
               className="hover:cursor-pointer"
-              onClick={() => setISSideBarOpen(false)}
+              onClick={() => setIsSideBarOpen(false)}
               size="30px"
             />
           ) : (
             <RxHamburgerMenu
               className="hover:cursor-pointer"
-              onClick={() => setISSideBarOpen(true)}
+              onClick={() => setIsSideBarOpen(true)}
               size="30px"
             />
           )}
