@@ -22,23 +22,23 @@ const Layout: FunctionComponent = () => {
   return (
     <div className="flex flex-col w-screen h-screen">
       <SidebarComponent isOpen={isSideBarOpen} onClose={handleCloseSidebar} />
-      <div className="header relative flex w-full h-14 px-4 bg-gray-100 shadow-lg items-center justify-between">
+      <div className="header fixed top-0 left-0 right-0 flex w-full h-16 min-h-[64px] px-4 bg-gray-100 shadow-lg items-center justify-between z-10">
         <div className="flex items-center space-x-3">
           {isSideBarOpen ? (
             <RxCross2
-              className="hover:cursor-pointer"
+              className="hover:cursor-pointer flex-shrink-0"
               onClick={() => setIsSideBarOpen(false)}
-              size="30px"
+              size={30}
             />
           ) : (
             <RxHamburgerMenu
-              className="hover:cursor-pointer"
+              className="hover:cursor-pointer flex-shrink-0"
               onClick={() => setIsSideBarOpen(true)}
-              size="30px"
+              size={30}
             />
           )}
           <a href="/" className="flex items-center">
-            <img className="w-32 h-auto" src="/logo.jpg" alt="Company Logo" />
+            <img className="w-32 h-8 object-contain" src="/logo.jpg" alt="Company Logo" />
           </a>
         </div>
         <div className="flex items-center">
@@ -50,7 +50,7 @@ const Layout: FunctionComponent = () => {
           </button>
         </div>
       </div>
-      <div className="flex w-full grow">
+      <div className="flex w-full grow mt-16">
         <Outlet />
       </div>
     </div>
