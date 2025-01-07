@@ -9,7 +9,8 @@ import {
     getFacetedRowModel,
     getFacetedUniqueValues,
     InitialTableState,
-    RowData
+    RowData,
+    FilterFn
 } from "@tanstack/react-table";
 import { TextInput, Table } from "flowbite-react";
 import { FunctionComponent, useMemo } from "react";
@@ -18,9 +19,15 @@ declare module '@tanstack/react-table' {
     interface ColumnMeta<TData extends RowData, TValue> {
         getSum?: boolean;
         sumFormatter?: (sum: number) => string;
-        filterType?: "dropdown";
+        filterType?: "dropdown" | "numeric";
     }
 }
+
+const numericFilter: FilterFn<any> = (row, columnId, filterValue) => {
+    if (!filterValue) return true;
+    const rowValue = row.getValue(columnId) as number;
+    return rowValue <= Number(filterValue);
+};
 
 interface TableCustomProps {
     data: Array<any>;
@@ -43,6 +50,8 @@ const TableCustom: FunctionComponent<TableCustomProps> = ({ data, columns, initi
         columns.map(column =>
             column.meta?.filterType === "dropdown"
                 ? { ...column, filterFn: "equalsString" }
+                : column.meta?.filterType === "numeric"
+                ? { ...column, filterFn: numericFilter }
                 : column
         ),
         [columns]
@@ -105,8 +114,8 @@ const TableCustom: FunctionComponent<TableCustomProps> = ({ data, columns, initi
                                                             className="w-36"
                                                             color="blue"
                                                             onChange={e => header.column.setFilterValue(e.target.value)}
-                                                            placeholder="Search..."
-                                                            type="text"
+                                                            placeholder={header.column.columnDef.meta?.filterType === "numeric" ? "Search..." : "Search..."}
+                                                            type={header.column.columnDef.meta?.filterType === "numeric" ? "number" : "text"}
                                                             value={(header.column.getFilterValue() ?? '') as string}
                                                         />
                                                     )}
