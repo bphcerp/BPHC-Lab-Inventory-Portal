@@ -36,7 +36,10 @@ const Dashboard: React.FC = () => {
       const data = await response.json();
 
       if (Array.isArray(data)) {
-        setConsumables(data);
+        const sortedData = [...data].sort((a, b) => 
+          a.consumableName.toLowerCase().localeCompare(b.consumableName.toLowerCase())
+        );
+        setConsumables(sortedData);
       } else {
         console.error('Expected an array but received:', data);
         setConsumables([]);
@@ -83,6 +86,7 @@ const Dashboard: React.FC = () => {
           </button>
         );
       },
+      sortingFn: 'alphanumeric',
       meta: {
         filterType: "dropdown" as const
       }
@@ -91,7 +95,8 @@ const Dashboard: React.FC = () => {
       header: 'Available',
       accessorKey: 'availableQuantity',
       meta: {
-        getSum: true
+        getSum: true,
+        filterType: "numeric"
       }
     },
     {
@@ -107,7 +112,6 @@ const Dashboard: React.FC = () => {
         sumFormatter: (sum: number) => `₹${sum.toFixed(2)}`
       }
     }
-
   ];
 
   const attributeColumns = Array.from({ length: 4 }).map((_, index) => ({
@@ -125,6 +129,15 @@ const Dashboard: React.FC = () => {
   }));
 
   const combinedColumns = [...columns, ...attributeColumns] as ColumnDef<Consumable>[];
+
+  const initialState = {
+    sorting: [
+      {
+        id: 'consumableName',
+        desc: false
+      }
+    ]
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -151,6 +164,7 @@ const Dashboard: React.FC = () => {
           consumable.consumableName.toLowerCase().includes(searchText.toLowerCase())
         )}
         columns={combinedColumns}
+        initialState={initialState}
       />
 
       <ConsumableDetailsModal
