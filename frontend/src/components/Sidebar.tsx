@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { MdOutlineInventory } from "react-icons/md";
 import { FaSignOutAlt, FaUserPlus } from "react-icons/fa";
 import { BiSolidFileExport } from "react-icons/bi";
@@ -12,9 +12,10 @@ import { AiOutlineCaretDown, AiOutlineSetting } from "react-icons/ai";
 
 interface SidebarProps {
   isOpen: boolean;
+  onClose: () => void;
 }
 
-const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
+const SidebarComponent: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
@@ -30,6 +31,11 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
     }
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    onClose();
+  };
+
   return (
     <div
       className={`fixed z-10 top-16 left-0 w-64 h-[calc(100vh-4rem)] bg-gray-100 text-gray-900 flex flex-col shadow-md transform transition-transform duration-300 ease-in-out ${
@@ -37,10 +43,10 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
       }`}
     >
       <nav className="flex flex-col flex-grow mt-4">
-        <NavItem to="/dashboard" icon={<MdOutlineSpaceDashboard />} label="Dashboard" />
-        <NavItem to="/consumables" icon={<MdOutlineInventory />} label="Add Consumables" />
-        <NavItem to="/out" icon={<FaSignOutAlt />} label="Issue Consumable" />
-        <NavItem to="/history" icon={<GrTransaction />} label="Transaction History" />
+        <NavItem onClick={() => handleNavigation("/dashboard")} to="/dashboard" icon={<MdOutlineSpaceDashboard />} label="Dashboard" />
+        <NavItem onClick={() => handleNavigation("/consumables")} to="/consumables" icon={<MdOutlineInventory />} label="Add Consumables" />
+        <NavItem onClick={() => handleNavigation("/out")} to="/out" icon={<FaSignOutAlt />} label="Issue Consumable" />
+        <NavItem onClick={() => handleNavigation("/history")} to="/history" icon={<GrTransaction />} label="Transaction History" />
         <div className="relative mx-3 mb-2">
           <button
             onClick={() => setIsAdminOpen(!isAdminOpen)}
@@ -56,17 +62,17 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen }) => {
           </button>
           {isAdminOpen && (
             <div className="absolute top-full left-0 w-full bg-gray-100 shadow-lg rounded-lg mt-1 overflow-hidden">
-              <NavItem to="/vendors" icon={<FaUserPlus />} label="Add Vendor" />
-              <NavItem to="/people" icon={<IoMdPeople />} label="Add User" />
-              <NavItem to="/category" icon={<TbCategoryPlus />} label="Add Category" />
-              <NavItem to="/report" icon={<BiSolidFileExport />} label=" Generate Report" />
-              <NavItem to="/admin" icon={<RiAdminLine />} label=" Add Admin" />
+              <NavItem onClick={() => handleNavigation("/vendors")} to="/vendors" icon={<FaUserPlus />} label="Add Vendor" />
+              <NavItem onClick={() => handleNavigation("/people")} to="/people" icon={<IoMdPeople />} label="Add User" />
+              <NavItem onClick={() => handleNavigation("/category")} to="/category" icon={<TbCategoryPlus />} label="Add Category" />
+              <NavItem onClick={() => handleNavigation("/report")} to="/report" icon={<BiSolidFileExport />} label=" Generate Report" />
+              <NavItem onClick={() => handleNavigation("/admin")} to="/admin" icon={<RiAdminLine />} label=" Add Admin" />
             </div>
           )}
         </div>
       </nav>
       <div className="px-4 py-3 border-t border-gray-300">
-        <NavItem to="/help" icon={<IoMdHelpBuoy />} label=" Help" />
+        <NavItem onClick={() => handleNavigation("/help")} to="/help" icon={<IoMdHelpBuoy />} label=" Help" />
         <button
           className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition"
           onClick={handleLogout}
@@ -82,14 +88,15 @@ const NavItem: React.FC<{
   to: string;
   icon: React.ReactNode;
   label: string;
-}> = ({ to, icon, label }) => (
-  <Link
-    to={to}
-    className="flex items-center px-4 py-3 hover:bg-gray-200 rounded-lg transition"
+  onClick?: () => void;
+}> = ({ icon, label, onClick }) => (
+  <div
+    onClick={onClick}
+    className="flex items-center px-4 py-3 hover:bg-gray-200 rounded-lg transition cursor-pointer"
   >
     <span className="mr-3">{icon}</span>
     <span className="text-lg font-semibold">{label}</span>
-  </Link>
+  </div>
 );
 
 export default SidebarComponent;
