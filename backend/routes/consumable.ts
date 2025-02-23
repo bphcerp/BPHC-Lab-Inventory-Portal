@@ -3,15 +3,8 @@ import { ConsumableModel } from '../models/consumable';
 import { ConsumableCategoryModel } from '../models/consumableCategory';
 import { PeopleModel } from '../models/people';
 import { authenticateToken } from '../middleware/authenticateToken';
+import { ConsumableTransactionModel, generateTransactionId } from '../models/consumableTransaction';
 import mongoose from 'mongoose';
-import { IConsumable } from '../models/consumable';
-import { ConsumableTransactionModel } from '../models/consumableTransaction';
-
-interface CommentRequest extends Request {
-    body: {
-        text: string;
-    }
-}
 
 const router = express.Router();
 
@@ -20,123 +13,15 @@ router.use(authenticateToken);
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler =>
   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// POST /api/consumable - Add a new consumable
-router.post(
-  '/',
-  asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { 
-      consumableName,
-      quantity, 
-      //unitPrice, 
-      vendor, 
-      totalCost,
-      date, 
-      categoryFields, 
-      addedBy 
-    } = req.body;
-
-    // if (!consumableName || !quantity || !unitPrice || !addedBy) {
-    //   res.status(400).json({ message: 'Missing required fields' });
-    //   return;
-    // }
-
-    if (!consumableName || !quantity || !addedBy) {
-      res.status(400).json({ message: 'Missing required fields' });
-      return;
-    }
-
-    const person = await PeopleModel.findById(addedBy);
-    if (!person) {
-      res.status(400).json({ message: 'Invalid addedBy reference' });
-      return;
-    }
-
-    const category = await ConsumableCategoryModel.findOne({
-      consumableName: consumableName,
-    });
-    if (!category) {
-      res.status(400).json({ message: 'Invalid consumable name - category not found' });
-      return;
-    }
-
-    try {
-      const normalizedCategoryFields = categoryFields || {};
-      
-      const query = {
-        consumableName: consumableName,
-        //unitPrice: Number(unitPrice),
-        categoryFields: normalizedCategoryFields
-      };
-
-      let savedConsumable = await ConsumableModel.findOneAndUpdate(
-        query,
-        {
-          $inc: { quantity: Number(quantity), totalConsumableCost: Number(totalCost) },
-          $setOnInsert: { claimedQuantity: 0 }, // Initialize claimedQuantity to 0 for new consumables
-          $set: {
-            vendor: vendor,
-            date: date || new Date(),
-            addedBy: addedBy,
-            updatedAt: new Date()
-          }
-        },
-        {
-          new: true,
-          upsert: true,
-          runValidators: true,
-          setDefaultsOnInsert: true
-        }
-      );
-
-      const availableQuantity = savedConsumable.quantity - (savedConsumable.claimedQuantity || 0);
-      const statusCode = savedConsumable.__v === 0 ? 201 : 200;
-
-       const quantityChange = Number(quantity);
-      const transactionType = savedConsumable?.__v === 0 ? 'ADD' : 'UPDATE';
-
-      // Record the transaction
-      const transaction = new ConsumableTransactionModel({
-        consumableName,
-        transactionQuantity: quantityChange,
-        remainingQuantity: savedConsumable.quantity,
-        vendor: savedConsumable.vendor,
-        totalCost: savedConsumable.totalCost,
-        categoryFields: savedConsumable.categoryFields,
-        transactionDate: date || new Date(),
-        addedBy,
-        transactionType,
-      });
-      await transaction.save();
-
-
-     res.status(savedConsumable.__v === 0 ? 201 : 200).json({
-  ...savedConsumable.toObject(),
-  availableQuantity,
-});
-
-    } catch (error: unknown) {
-      console.error('Error in consumable creation:', error);
-      
-      if (error instanceof Error) {
-        res.status(500).json({ 
-          message: 'Error creating consumable', 
-          error: error.message 
-        });
-      } else {
-        res.status(500).json({ 
-          message: 'Error creating consumable', 
-          error: 'Unknown error' 
-        });
-      }
-    }
-  })
-);
-
-// GET /api/consumable - Fetch all consumables
+// GET route for fetching all consumables
 router.get(
   '/',
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const consumables = await ConsumableModel.find()
+    // If vendor query param exists, filter by vendor
+    const { vendor } = req.query;
+    const query = vendor ? { vendor } : {};
+
+    const consumables = await ConsumableModel.find(query)
       .populate('vendor')
       .populate('addedBy');
 
@@ -150,7 +35,6 @@ router.get(
         return {
           ...consumableObj,
           categoryDefinition: category,
-          // Calculate available quantity (total - claimed)
           availableQuantity: consumableObj.quantity - (consumableObj.claimedQuantity || 0)
         };
       })
@@ -158,6 +42,127 @@ router.get(
 
     res.status(200).json(consumablesWithFields);
   })
+);
+
+// Modified POST route in consumable.ts (Router)
+router.post(
+  '/',
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { 
+      consumableName,
+      quantity, 
+      vendor, 
+      totalCost,
+      unitPrice,
+      date,
+      entryReferenceNumber, // New field
+      categoryFields, 
+      addedBy 
+    } = req.body;
+
+    if (!consumableName || !quantity || !addedBy || !unitPrice || !entryReferenceNumber) {
+      res.status(400).json({ message: 'Missing required fields' });
+      return;
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Check if entry reference number already exists
+      const existingConsumable = await ConsumableModel.findOne({ entryReferenceNumber });
+      if (existingConsumable) {
+        res.status(400).json({ message: 'Entry reference number already exists' });
+        return;
+      }
+
+      const person = await PeopleModel.findById(addedBy);
+      if (!person) {
+        res.status(400).json({ message: 'Invalid addedBy reference' });
+        return;
+      }
+
+      const category = await ConsumableCategoryModel.findOne({
+        consumableName: consumableName,
+      });
+      if (!category) {
+        res.status(400).json({ message: 'Invalid consumable name - category not found' });
+        return;
+      }
+
+      const normalizedCategoryFields = categoryFields || {};
+      
+      const query = {
+        consumableName: consumableName,
+        categoryFields: normalizedCategoryFields,
+        entryReferenceNumber: entryReferenceNumber // Add to query
+      };
+
+      let savedConsumable = await ConsumableModel.findOneAndUpdate(
+        query,
+        {
+          $inc: { quantity: Number(quantity), totalConsumableCost: Number(totalCost) },
+          $setOnInsert: { claimedQuantity: 0 },
+          $set: {
+            vendor: vendor,
+            unitPrice: Number(unitPrice),
+            date: date || new Date(),
+            addedBy: addedBy,
+            updatedAt: new Date()
+          }
+        },
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+          session
+        }
+      );
+
+// Create transaction with proper ID
+const transaction = new ConsumableTransactionModel({
+  transactionId: generateTransactionId('ADD'),
+  consumableName,
+  consumableId: savedConsumable._id, // Add this
+  transactionQuantity: Number(quantity),
+  remainingQuantity: savedConsumable.quantity,
+  vendor: savedConsumable.vendor,
+  totalConsumableCost: Number(totalCost),
+  categoryFields: savedConsumable.categoryFields,
+  transactionDate: date || new Date(),
+  addedBy,
+  transactionType: 'ADD'
+});
+
+await transaction.save({ session });
+await session.commitTransaction();
+
+const availableQuantity = savedConsumable.quantity - (savedConsumable.claimedQuantity || 0);
+res.status(savedConsumable.__v === 0 ? 201 : 200).json({
+  ...savedConsumable.toObject(),
+  availableQuantity,
+});
+
+} catch (error: unknown) {
+await session.abortTransaction();
+console.error('Error in consumable creation:', error);
+
+if (error instanceof Error) {
+  res.status(500).json({ 
+    message: 'Error creating consumable', 
+    error: error.message 
+  });
+} else {
+  res.status(500).json({ 
+    message: 'Error creating consumable', 
+    error: 'Unknown error' 
+  });
+}
+} finally {
+session.endSession();
+}
+})
 );
 
 // GET /api/consumable/:id - Fetch a specific consumable by ID
