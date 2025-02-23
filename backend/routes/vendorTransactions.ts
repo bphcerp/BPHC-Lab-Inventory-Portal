@@ -49,10 +49,11 @@ router.get(
         quantity: consumable.quantity,
         date: consumable.date,
         categoryFields: consumable.categoryFields || {},
+        totalCost: consumable.totalCost || 0,
       }));
 
       const totalTransactions = detailedConsumables.length;
-      //const totalSpent = detailedConsumables.reduce((sum, c) => sum + (c.totalCost || 0), 0);
+      const totalSpent = detailedConsumables.reduce((sum, c) => sum + (c.totalCost || 0), 0);
       const uniqueItems = new Set(detailedConsumables.map((c) => c.consumableName)).size;
       const mostRecentTransaction = filteredConsumables[0].date;
       const oldestTransaction = filteredConsumables[filteredConsumables.length - 1].date;
@@ -61,7 +62,7 @@ router.get(
         vendorName,
         stats: {
           totalTransactions,
-          //totalSpent,
+          totalSpent,
           uniqueItems,
           mostRecentTransaction,
           oldestTransaction,
