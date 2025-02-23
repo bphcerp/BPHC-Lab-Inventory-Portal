@@ -18,10 +18,10 @@ const HelpPage = () => {
       <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-3xl">
         <h1 className="text-3xl font-semibold text-center text-gray-800 mb-6">Help & Support</h1>
         <p className="text-center text-gray-600 mb-3">
-          Current Version: v1.0
+          Current Version: v1.1
         </p>
         <p className="text-center text-gray-600 mb-8">
-          Last Updated On: 21/11/2024
+          Last Updated On: 23/02/2025
         </p>
         <p className="text-center text-gray-600 mb-8">
           Reach out to us for assistance or any inquiries. We’re here to help!
