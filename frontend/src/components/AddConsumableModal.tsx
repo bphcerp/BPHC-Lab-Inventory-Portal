@@ -36,6 +36,7 @@ export interface Consumable {
   addedBy: string;
   totalCost: number;
   consumableName: string;
+  entryReferenceNumber: string;
   categoryFields?: { [key: string]: any };
 }
 
@@ -53,6 +54,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   const [vendor, setVendor] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [totalCost, setTotalCost] = useState<number | string>('');
+  const [entryReferenceNumber, setEntryReferenceNumber] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [categoryFields, setCategoryFields] = useState<any[]>([]);
   const [categoryFieldValues, setCategoryFieldValues] = useState<{ [key: string]: any }>({});
@@ -112,9 +114,19 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     }
   };
 
+  const validateReferenceNumber = (refNumber: string): boolean => {
+    const pattern = /^LAMBDA\/QPI\/\d{4}-\d{2}\/\d{3}$/;
+    return pattern.test(refNumber);
+  };
+
   const handleSubmit = async () => {
-    if (!category || !quantity || !unitPrice || !vendor || !addedBy || !date) {
+    if (!category || !quantity || !unitPrice || !vendor || !addedBy || !date || !entryReferenceNumber) {
       toastError('Please fill in all required fields.');
+      return;
+    }
+
+    if (!validateReferenceNumber(entryReferenceNumber)) {
+      toastError('Invalid reference number format. Please use format: LAMBDA/QPI/YYYY-YY/XXX');
       return;
     }
 
@@ -134,6 +146,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
         date,
         totalCost: Number(totalCost),
         consumableName: selectedCategory.consumableName,
+        entryReferenceNumber, // Added new field
         categoryFields: categoryFieldValues,
       };
 
@@ -157,6 +170,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     setAddedBy('');
     setDate('');
     setTotalCost('');
+    setEntryReferenceNumber(''); // Reset entry reference number
     setCategoryFieldValues({});
   };
 
@@ -194,6 +208,21 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
           onSubmit={fetchPeople}
         />
         <div className="space-y-4">
+           <div>
+            <Label htmlFor="entryReferenceNumber" value="Reference Number *" />
+            <TextInput
+              id="entryReferenceNumber"
+              type="text"
+              value={entryReferenceNumber}
+              onChange={(e) => setEntryReferenceNumber(e.target.value)}
+              placeholder="LAMBDA/QPI/2024-24/001"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Format: LAMBDA/QPI/YYYY-YY/XXX
+            </p>
+          </div>
+          
           <div>
             <Label htmlFor="category" value="Category *" />
             <Select
