@@ -56,11 +56,11 @@ const Dashboard: React.FC = () => {
   };
 
   const getPillClass = (available: number, total: number) => {
-    const percentage = (available / total) * 100;
-    if (percentage < 10) return 'bg-red-100 text-red-700 border border-red-300';
-    if (percentage < 30) return 'bg-yellow-100 text-yellow-700 border border-yellow-300';
-    return 'bg-green-100 text-green-700 border border-green-300';
-  };
+  const percentage = (available / total) * 100;
+  if (percentage < 10) return 'bg-red-100 text-red-700 border border-red-300 rounded-full';
+  if (percentage < 30) return 'bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-full';
+  return 'bg-green-100 text-green-700 border border-green-300 rounded-full';
+};
 
   const handleConsumableClick = (consumable: Consumable) => {
     setModalConsumable(consumable);
