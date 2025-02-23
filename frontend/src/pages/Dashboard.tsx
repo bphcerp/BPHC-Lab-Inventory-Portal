@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
             className={`px-3 py-1.5 text-sm font-medium ${getPillClass(
               consumable.availableQuantity,
               consumable.quantity
-            )} hover:opacity-80 transition-opacity cursor-pointer text-left w-full max-w-[200px] truncate`}
+            )} hover:opacity-80 transition-opacity cursor-pointer text-center w-full max-w-[200px] truncate`}
           >
             {consumable.consumableName}
           </button>
