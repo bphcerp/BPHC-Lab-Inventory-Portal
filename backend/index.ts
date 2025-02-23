@@ -13,6 +13,7 @@ import outRoutes from './routes/out';
 import reportRoutes from './routes/report';
 import historyRoutes from './routes/history';
 import consumableDetailsRoutes from './routes/consumableDetails';
+import consumableTransactionRoutes from './routes/consumableTransaction';
 import transactionRoutes from './routes/transactionsByPerson';
 import vendorTransactions from './routes/vendorTransactions'
 import { authenticateToken } from './middleware/authenticateToken';
@@ -22,7 +23,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT!;
 const url = 'https://bits-inventorymanagement-backend.onrender.com';
-const interval = 45000;
+const interval = 30000;
 
 mongoose.connect(process.env.DB_URI!)
   .then(() => console.log('MongoDB connected'))
@@ -47,6 +48,7 @@ app.use('/api/transactions',transactionRoutes);
 app.use('/api/vendorTransactions', vendorTransactions);
 app.use('/api/people',peopleRoutes);
 app.use('/api/consumable-details', consumableDetailsRoutes);
+app.use('/api/consumable', consumableTransactionRoutes);
 app.use(express.static("public"));
 
 app.get('/', (req: Request, res: Response) => {
