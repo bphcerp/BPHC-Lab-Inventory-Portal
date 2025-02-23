@@ -5,16 +5,14 @@ import { toastError, toastSuccess } from '../toasts';
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  itemId: string;
-  itemName: string;
+  itemName: string; // Vendor name instead of ID
   deleteEndpoint: string;
-  onItemDeleted: (id: string) => void;
+  onItemDeleted: (name: string) => void;
 }
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   isOpen,
   onClose,
-  itemId,
   itemName,
   deleteEndpoint,
   onItemDeleted,
@@ -27,24 +25,9 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     setError(null);
 
     try {
-      // Check if the vendor has transactions
-      const transactionCheckResponse = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/vendorTransactions/${itemName}`,
-        { credentials: 'include' }
-      );
-
-      if (transactionCheckResponse.ok) {
-        const data = await transactionCheckResponse.json();
-        if (data.consumables && data.consumables.length > 0) {
-          throw new Error('Vendor has transactions and cannot be deleted');
-        }
-      } else {
-        throw new Error('Failed to check vendor transactions');
-      }
-
       // Proceed with deletion
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/${deleteEndpoint}/${itemId}`,
+        `${import.meta.env.VITE_BACKEND_URL}/${deleteEndpoint}/${itemName}`,
         {
           method: 'DELETE',
           credentials: 'include',
@@ -56,14 +39,13 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
         throw new Error(errorData.message || 'Failed to delete vendor');
       }
 
-      onItemDeleted(itemId);
-      toastSuccess('Vendor deleted successfully');
+      onItemDeleted(itemName);
+      toastSuccess(`Vendor "${itemName}" deleted successfully`);
       onClose();
     } catch (error) {
-      // Use the `message` property of the Error object
       const errorMessage = (error as Error).message || 'Error deleting vendor';
       setError(errorMessage);
-      toastError(errorMessage); // Pass the string message here
+      toastError(errorMessage);
     } finally {
       setLoading(false);
     }
