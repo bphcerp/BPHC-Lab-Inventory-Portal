@@ -8,14 +8,7 @@ import AddVendorModal from '../components/AddVendorModal';
 import VendorDetailsModal from '../components/VendorDetailsModal';
 
 interface Vendor {
-  _id: string;
   vendorId: string;
-  name: string;
-  email: string;
-  phone: string;
-}
-
-interface NewVendor {
   name: string;
   email: string;
   phone: string;
@@ -59,39 +52,40 @@ const AddVendorPage: React.FC = () => {
     setSelectedVendor(null);
   };
 
-  const addNewVendor = async (vendorData: NewVendor) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(vendorData),
-      });
+  const addNewVendor = async (vendor: Omit<Vendor, 'vendorId'>) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/vendor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(vendor),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add vendor');
-      }
-
-      const newVendor: Vendor = await response.json();
-      handleVendorAdded(newVendor);
-      toastSuccess('Vendor added successfully');
-    } catch (error) {
-      toastError(error instanceof Error ? error.message : 'Error adding vendor');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to add vendor');
     }
-  };
+
+    const newVendor: Vendor = await response.json();
+    handleVendorAdded(newVendor);
+    toastSuccess('Vendor added successfully');
+  } catch (error) {
+    toastError(error instanceof Error ? error.message : 'Error adding vendor');
+  }
+};
+
 
   const handleAddVendor = () => {
     setIsAddVendorModalOpen(true);
   };
 
   const handleVendorAdded = (newVendor: Vendor) => {
-    setVendors((prev) => [...prev, newVendor]);
-    setFilteredVendors((prev) => [...prev, newVendor]);
-    setIsAddVendorModalOpen(false);
-  };
+  setVendors((prev: Vendor[]) => [...prev, newVendor]);
+  setFilteredVendors((prev: Vendor[]) => [...prev, newVendor]);
+  setIsAddVendorModalOpen(false);
+};
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const searchTerm = event.target.value.toLowerCase();
