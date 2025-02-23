@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { toastError } from '../toasts';
 import TableCustom from '../components/TableCustom';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, VisibilityState } from '@tanstack/react-table';
 import ConsumableDetailsModal from '../components/ConsumableDetailsModal';
+import { Button } from 'flowbite-react';
+import { HiEye, HiEyeOff } from 'react-icons/hi';
 
 export interface Consumable {
   _id: string;
@@ -20,6 +22,8 @@ const Dashboard: React.FC = () => {
   const [searchText] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalConsumable, setModalConsumable] = useState<Consumable | null>(null);
+  const [showAllColumns, setShowAllColumns] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const fetchConsumables = async () => {
     try {
@@ -67,7 +71,17 @@ const Dashboard: React.FC = () => {
     fetchConsumables();
   }, []);
 
-  const columns: ColumnDef<Consumable>[] = [
+  const getMaxAttributeCount = (data: Consumable[]) => {
+    let maxCount = 0;
+    data.forEach(item => {
+      if (item.categoryFields) {
+        maxCount = Math.max(maxCount, Object.keys(item.categoryFields).length);
+      }
+    });
+    return maxCount;
+  };
+
+  const mainColumns: ColumnDef<Consumable>[] = [
     {
       id: 'consumableName',
       header: 'Name',
@@ -77,10 +91,10 @@ const Dashboard: React.FC = () => {
         return (
           <button
             onClick={() => handleConsumableClick(consumable)}
-            className={`px-3 py-1 rounded-full text-sm font-medium ${getPillClass(
+            className={`px-3 py-1.5 text-sm font-medium ${getPillClass(
               consumable.availableQuantity,
               consumable.quantity
-            )} hover:opacity-80 transition-opacity cursor-pointer`}
+            )} hover:opacity-80 transition-opacity cursor-pointer text-left w-full max-w-[200px] truncate`}
           >
             {consumable.consumableName}
           </button>
@@ -90,31 +104,10 @@ const Dashboard: React.FC = () => {
       meta: {
         filterType: "dropdown" as const
       }
-    },
-    {
-      header: 'Available',
-      accessorKey: 'availableQuantity',
-      meta: {
-        getSum: true,
-        filterType: "numeric"
-      }
-    },
-    {
-      header: 'Total Cost',
-      accessorKey: 'totalConsumableCost',
-      enableColumnFilter: false,
-      cell: ({ getValue }) => {
-        const value = getValue() as number | null | undefined;
-        return value != null ? `₹${value}` : '';
-      },
-      meta: {
-        getSum: true,
-        sumFormatter: (sum: number) => `₹${sum.toFixed(2)}`
-      }
     }
   ];
 
-  const attributeColumns = Array.from({ length: 4 }).map((_, index) => ({
+  const attributeColumns = Array.from({ length: getMaxAttributeCount(consumables) }).map((_, index) => ({
     id: `attribute${index + 1}`,
     header: `Attribute ${index + 1}`,
     accessorFn: (row: Consumable) => {
@@ -128,44 +121,92 @@ const Dashboard: React.FC = () => {
     }
   }));
 
-  const combinedColumns = [...columns, ...attributeColumns] as ColumnDef<Consumable>[];
+  const availableColumn: ColumnDef<Consumable> = {
+    header: 'Available',
+    accessorKey: 'availableQuantity',
+    meta: {
+      getSum: true,
+      filterType: "numeric"
+    }
+  };
 
-  const initialState = {
-    sorting: [
-      {
-        id: 'consumableName',
-        desc: false
-      }
-    ]
+  const combinedColumns = [...mainColumns, ...attributeColumns, availableColumn] as ColumnDef<Consumable>[];
+
+  useEffect(() => {
+    const initialVisibility: VisibilityState = {};
+    attributeColumns.forEach((col, index) => {
+      // Show first two attributes by default
+      initialVisibility[col.id] = index < 2;
+    });
+    setColumnVisibility(initialVisibility);
+  }, [consumables.length]); // Update when consumables change
+
+  const toggleAllColumns = () => {
+    const newShowAllColumns = !showAllColumns;
+    setShowAllColumns(newShowAllColumns);
+    
+    const newVisibility: VisibilityState = {};
+    attributeColumns.forEach((col, index) => {
+      // Always show first two attributes, toggle others based on showAllColumns
+      newVisibility[col.id] = index < 2 ? true : newShowAllColumns;
+    });
+    
+    setColumnVisibility(prevState => ({
+      ...prevState,
+      ...newVisibility
+    }));
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="relative mb-4">
-        <h1 className="text-3xl font-bold text-gray-800 text-center">Dashboard</h1>
-        <div className="absolute top-0 right-0 flex items-center space-x-4">
-          <div className="flex items-center">
-            <span className="w-4 h-4 rounded-full bg-green-500 inline-block"></span>
-            <span className="ml-2 text-sm text-gray-700">Above 30%</span>
+<div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{ 
+      maxWidth: showAllColumns ? 'none' : '6xl',
+      transition: 'max-width 0.3s ease-in-out'
+    }}>
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-medium text-gray-800 mb-4">Inventory Dashboard</h1>
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+          <div className="inline-flex gap-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full bg-green-500"></span>
+              <span className="ml-2 text-xs text-gray-600">Above 30%</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full bg-yellow-300"></span>
+              <span className="ml-2 text-xs text-gray-600">10% - 30%</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full bg-red-500"></span>
+              <span className="ml-2 text-xs text-gray-600">Below 10%</span>
+            </div>
           </div>
-          <div className="flex items-center">
-            <span className="w-4 h-4 rounded-full bg-yellow-300 inline-block"></span>
-            <span className="ml-2 text-sm text-gray-700">10% - 30%</span>
-          </div>
-          <div className="flex items-center">
-            <span className="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
-            <span className="ml-2 text-sm text-gray-700">Below 10%</span>
-          </div>
+            <Button
+              size="sm"
+              color="gray"
+              onClick={toggleAllColumns}
+              className="flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100"
+            >
+              <div className="flex items-center">
+                {showAllColumns ? <HiEyeOff className="w-4 h-4" /> : <HiEye className="w-4 h-4" />}
+                <span className="ml-2">{showAllColumns ? 'Hide Extra Attributes' : 'Show All Attributes'}</span>
+              </div>
+            </Button>
         </div>
       </div>
 
-      <TableCustom 
-        data={consumables.filter((consumable) =>
-          consumable.consumableName.toLowerCase().includes(searchText.toLowerCase())
-        )}
-        columns={combinedColumns}
-        initialState={initialState}
-      />
+      <div className={`bg-white rounded-lg shadow-sm overflow-x-auto transition-all duration-300 ${
+        showAllColumns ? 'max-w-full' : ''
+      }`}>
+        <TableCustom 
+          data={consumables.filter((consumable) =>
+            consumable.consumableName.toLowerCase().includes(searchText.toLowerCase())
+          )}
+          columns={combinedColumns}
+          initialState={{
+            sorting: [{ id: 'consumableName', desc: false }],
+            columnVisibility
+          }}
+        />
+      </div>
 
       <ConsumableDetailsModal
         isOpen={isModalOpen}
