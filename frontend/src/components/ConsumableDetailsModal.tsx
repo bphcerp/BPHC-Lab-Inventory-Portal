@@ -14,6 +14,7 @@ interface Transaction {
   issuedBy?: { _id: string; name: string };
   issuedTo?: { _id: string; name: string };
   categoryFields?: Record<string, any>;
+  entryReferenceNumber?: string;
 }
 
 interface ConsumableDetailsModalProps {
@@ -126,6 +127,9 @@ const ConsumableDetailsModal: React.FC<ConsumableDetailsModalProps> = ({
                     Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reference No.
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Transaction Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -147,6 +151,9 @@ const ConsumableDetailsModal: React.FC<ConsumableDetailsModalProps> = ({
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(transaction.transactionDate).toLocaleDateString()}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {transaction.entryReferenceNumber || '-'}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-md text-sm font-medium ${className}`}>
                           {text}
@@ -166,7 +173,7 @@ const ConsumableDetailsModal: React.FC<ConsumableDetailsModalProps> = ({
                 })}
                 {transactions.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                       No transaction history found for this consumable.
                     </td>
                   </tr>
