@@ -23,6 +23,7 @@ interface IConsumableBase {
     comments: ICommentBase[];
     createdAt: Date;
     updatedAt: Date;
+    entryReferenceNumber: string; 
 }
 
 // Document interfaces
@@ -53,6 +54,7 @@ const ConsumableSchema = new Schema<IConsumable>(
         comments: [CommentSchema],
         createdAt: { type: Date, default: Date.now },
         updatedAt: { type: Date, default: Date.now },
+        entryReferenceNumber: { type: String, required: true, unique: true },
     },
     { timestamps: true }
 );
