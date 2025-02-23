@@ -3,146 +3,167 @@ import { ConsumableModel } from '../models/consumable';
 import { ConsumableTransactionModel } from '../models/consumableTransaction';
 import { PeopleModel } from '../models/people';
 import { authenticateToken } from '../middleware/authenticateToken';
+import mongoose from 'mongoose';
+import { generateTransactionId } from '../models/consumableTransaction';
 
 const router = express.Router();
+router.use(authenticateToken);
+
 // Utility function for async error handling
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler =>
   (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// Utility function to generate reference number based on transaction date
-async function generateReferenceNumber(transactionDate: Date) {
-  const year = transactionDate.getFullYear();
-  const month = transactionDate.getMonth(); // 0-11 where 0 is January
-  
-  // If month is January-March (0-2), use previous year as start
-  // If month is April-December (3-11), use current year as start
-  const financialYearStart = month <= 2 ? year - 1 : year;
-  const financialYearEnd = financialYearStart + 1;
-  const financialYear = `${financialYearStart}-${financialYearEnd.toString().slice(2)}`;
-  
-  // Get the latest transaction count for the specified financial year
-  const latestTransaction = await ConsumableTransactionModel
+// Updated utility function to generate base reference number with correct financial year
+async function generateBaseReferenceNumber(): Promise<string> {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const isAfterApril = currentDate.getMonth() >= 3; // April is month 3 (0-based)
+  const financialYear = isAfterApril 
+    ? `${currentYear}-${(currentYear + 1).toString().slice(2)}`
+    : `${currentYear-1}-${currentYear.toString().slice(2)}`;
+
+const latestTransaction = await ConsumableTransactionModel
     .findOne({
-      referenceNumber: new RegExp(`LAMBDA/UTL/${financialYear}/`)
+      referenceNumber: {
+        $regex: `LAMBDA/UTL/${financialYear}/\\d{3}[A-Z]?$`
+      }
     })
     .sort({ referenceNumber: -1 });
 
   let nextNumber = 1;
   if (latestTransaction) {
-    const lastNumber = parseInt(latestTransaction.referenceNumber.split('/').pop() || '0');
-    nextNumber = lastNumber + 1;
+    // Extract the number part, ignoring any letter suffix
+    const match = latestTransaction.referenceNumber.match(/(\d{3})[A-Z]?$/);
+    if (match) {
+      nextNumber = parseInt(match[1]) + 1;
+    }
   }
 
   return `LAMBDA/UTL/${financialYear}/${nextNumber.toString().padStart(3, '0')}`;
 }
 
-router.use(authenticateToken);
+// Function to generate reference numbers for a group of items
+async function generateGroupReferenceNumbers(count: number): Promise<string[]> {
+  const baseRef = await generateBaseReferenceNumber();
+  return Array.from({ length: count }, (_, index) => {
+    const suffix = String.fromCharCode(65 + index); // A, B, C, etc.
+    return `${baseRef}${suffix}`;
+  });
+}
 
-// POST /api/consumable/claim/:id - Claim a consumable
+// POST /api/consumable/claim/bulk - Bulk claim consumables
 router.post(
-  '/claim/:id',
-  asyncHandler(async (req: Request, res: Response) => {
-    const consumableId = req.params.id;
-    const { quantity, issuedBy, issuedTo, issueDate } = req.body;
+  '/claim/bulk',
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { items, issuedBy, issuedTo } = req.body;
 
-    // Input validation
-    if (!consumableId || !quantity || !issuedBy || !issuedTo|| !issueDate) {
+    if (!Array.isArray(items) || items.length === 0) {
       res.status(400).json({ 
-        message: 'Missing required fields. Please provide consumableId, quantity, issuedBy, and issuedTo.' 
+        success: false,
+        message: 'No items provided' 
       });
       return;
     }
 
-    if (typeof quantity !== 'number' || quantity <= 0) {
-      res.status(400).json({ message: 'Invalid quantity specified.' });
+    if (!issuedBy || !issuedTo) {
+      res.status(400).json({
+        success: false,
+        message: 'Both issuedBy and issuedTo are required'
+      });
       return;
     }
 
-    // Validate issuedBy and issuedTo references
-    const [issuer, recipient] = await Promise.all([
-      PeopleModel.findById(issuedBy),
-      PeopleModel.findById(issuedTo)
-    ]);
-
-    if (!issuer || !recipient) {
-      res.status(400).json({ message: 'Invalid issuedBy or issuedTo reference.' });
-      return;
-    }
-
-    // Find and validate consumable
-    const consumable = await ConsumableModel.findById(consumableId);
-    if (!consumable) {
-      res.status(404).json({ message: 'Consumable not found' });
-      return;
-    }
-
-    if (consumable.quantity < quantity) {
-      res.status(400).json({ message: 'Insufficient quantity available' });
-      return;
-    }
-
-    if (quantity > consumable.quantity - consumable.claimedQuantity) {
-      res.status(400).json({ message: 'Not enough available quantity.' });
-      return;
-    }
-
-    const parsedDate = new Date(issueDate);
-    if (isNaN(parsedDate.getTime())) {
-      res.status(400).json({ message: 'Invalid issue date format.' });
-      return;
-    }
-
+    const session = await mongoose.startSession();
+    
     try {
-      // Generate reference number using the transaction date
-      const referenceNumber = await generateReferenceNumber(parsedDate);
-
-      // Update consumable quantities
-      const updatedConsumable = await ConsumableModel.findByIdAndUpdate(
-        consumableId,
-        {
-          $inc: { 
-            //quantity: -quantity,
-            claimedQuantity: +quantity 
+      return await session.withTransaction(async () => {
+        const groupTransactionId = generateTransactionId('ISSUE');
+        // Generate reference numbers within the transaction
+        const referenceNumbers = await generateGroupReferenceNumbers(items.length);
+        
+        const transactionPromises = items.map(async ({ consumableId, quantity }, index) => {
+          const consumable = await ConsumableModel.findById(consumableId).session(session);
+          if (!consumable) {
+            throw new Error(`Consumable not found: ${consumableId}`);
           }
-        },
-        { new: true }
-      );
 
-      if (!updatedConsumable) {
-        res.status(404).json({ message: 'Failed to update consumable' });
-        return;
-      }
+          const availableQuantity = consumable.quantity - (consumable.claimedQuantity || 0);
+          if (availableQuantity < quantity) {
+            throw new Error(`Insufficient quantity for ${consumable.consumableName}. Available: ${availableQuantity}, Requested: ${quantity}`);
+          }
 
-      // Create transaction record with reference number
-      const transaction = new ConsumableTransactionModel({
-        consumableName: consumable.consumableName,
-        transactionQuantity: quantity,
-        remainingQuantity: consumable.quantity - updatedConsumable.claimedQuantity,
-        categoryFields: consumable.categoryFields,
-        referenceNumber,
-        issuedBy,
-        issuedTo,
-        transactionType: 'ISSUE',
-        transactionDate: parsedDate
-      });
+          await ConsumableModel.findByIdAndUpdate(
+            consumableId,
+            { $inc: { claimedQuantity: quantity } },
+            { session }
+          );
 
-      await transaction.save();
+          const transaction = new ConsumableTransactionModel({
+            transactionId: groupTransactionId,
+            referenceNumber: referenceNumbers[index],
+            consumableName: consumable.consumableName,
+            consumableId: consumable._id,
+            transactionQuantity: quantity,
+            remainingQuantity: availableQuantity - quantity,
+            categoryFields: consumable.categoryFields,
+            issuedBy,
+            issuedTo,
+            transactionType: 'ISSUE'
+          });
 
-      // Return success response with updated data and populated people information
-      res.status(200).json({
-        success: true,
-        message: 'Consumable issued successfully',
-        data: {
-          consumable: updatedConsumable,
-          transaction: await ConsumableTransactionModel.findById(transaction._id)
-            .populate('issuedBy')
-            .populate('issuedTo')
-        }
+          await transaction.save({ session });
+
+          return {
+            referenceNumber: transaction.referenceNumber,
+            consumableName: transaction.consumableName,
+            quantity: transaction.transactionQuantity
+          };
+        });
+
+        const transactions = await Promise.all(transactionPromises);
+
+        res.status(200).json({
+          success: true,
+          message: 'Consumables issued successfully',
+          data: {
+            groupTransactionId,
+            transactions
+          }
+        });
       });
     } catch (error) {
-      console.error('Error updating consumable:', error);
-      res.status(500).json({ message: 'Error updating consumable' });
+      console.error('Bulk claim error:', error);
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to process claim'
+      });
+    } finally {
+      await session.endSession();
     }
+  })
+);
+
+
+// Keep the original single claim route for backward compatibility
+router.post(
+  '/claim/:id',
+  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const consumableId = req.params.id;
+    const { quantity, issuedBy, issuedTo } = req.body;
+
+    // Redirect to bulk endpoint with single item
+    const bulkRequest = {
+      items: [{
+        consumableId,
+        quantity
+      }],
+      issuedBy,
+      issuedTo
+    };
+
+    // Forward to bulk handler
+    req.body = bulkRequest;
+    return router.post('/claim/bulk')(req, res, next);
   })
 );
 
