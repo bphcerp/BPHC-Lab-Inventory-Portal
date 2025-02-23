@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Modal, Label, TextInput } from 'flowbite-react';
+import { Button, Modal, Label, TextInput, Table } from 'flowbite-react';
 import { Search } from 'lucide-react';
 import { toastError, toastSuccess } from '../toasts';
 
@@ -18,16 +18,36 @@ interface Person {
 interface ClaimConsumableModalProps {
   isOpen: boolean;
   onClose: () => void;
-  consumable: Consumable | null;
+  consumables: Consumable[];
   onClaimSuccess: () => void;
 }
+
+interface ConsumableQuantity {
+  consumableId: string;
+  quantity: string;
+}
+
+interface TransactionResult {
+  referenceNumber: string;
+  consumableName: string;
+  quantity: number;
+}
+
+interface SuccessData {
+  groupTransactionId: string;
+  transactions: TransactionResult[];
+}
+
+
+// ... (previous imports remain the same)
 
 const SearchableSelect = ({ 
   options, 
   value, 
   onChange, 
   placeholder,
-  disabled}: { 
+  disabled}:
+  { 
   options: Person[], 
   value: string, 
   onChange: (value: string) => void,
@@ -39,21 +59,13 @@ const SearchableSelect = ({
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // ... (previous useEffect and other code remains the same)
 
   const filteredOptions = options.filter(option =>
     option.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Find selected person by ID, not by name
   const selectedPerson = options.find(option => option._id === value);
 
   return (
@@ -85,7 +97,7 @@ const SearchableSelect = ({
                 key={option._id}
                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                 onClick={() => {
-                  onChange(option._id);
+                  onChange(option._id); // Pass the ID, not the name
                   setIsOpen(false);
                   setSearchTerm('');
                 }}
@@ -106,32 +118,31 @@ const SearchableSelect = ({
 const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
   isOpen,
   onClose,
-  consumable,
-  onClaimSuccess,
+  consumables,
 }) => {
-  const [claimQuantity, setClaimQuantity] = useState<number | string>('');
+  const [quantities, setQuantities] = useState<ConsumableQuantity[]>([]);
   const [issuedBy, setIssuedBy] = useState<string>('');
   const [issuedTo, setIssuedTo] = useState<string>('');
-  const [issueDate, setIssueDate] = useState<string>('');
   const [people, setPeople] = useState<Array<Person>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setClaimQuantity('');
+      // Initialize quantities array with empty values for each consumable
+      setQuantities(consumables.map(c => ({ consumableId: c._id, quantity: '' })));
       setIssuedBy('');
       setIssuedTo('');
-      setIssueDate('');
+      setError(null);
       fetchPeople();
     }
-  }, [isOpen]);
+  }, [isOpen, consumables]);
 
   const fetchPeople = async () => {
     try {
       const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
-      const apiUrl = `${baseUrl}/people`;
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${baseUrl}/people`, {
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -146,144 +157,209 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
       const data = await response.json();
       setPeople(data);
     } catch (error) {
-      toastError('Error fetching people list');
+      const errorMessage = error instanceof Error ? error.message : 'Error fetching people list';
+      toastError(errorMessage);
       console.error('Error fetching people:', error);
     }
   };
 
+  const handleQuantityChange = (consumableId: string, value: string) => {
+    setQuantities(prev => 
+      prev.map(q => 
+        q.consumableId === consumableId ? { ...q, quantity: value } : q
+      )
+    );
+  };
+
   const validateForm = () => {
-    if (!consumable) {
-      toastError('No consumable selected');
+    if (consumables.length === 0) {
+      setError('No consumables selected');
       return false;
     }
 
-    const quantity = Number(claimQuantity);
-    if (!quantity || quantity <= 0) {
-      toastError('Please enter a valid quantity');
-      return false;
-    }
+    // Validate all quantities
+    for (const q of quantities) {
+      const quantity = Number(q.quantity);
+      const consumable = consumables.find(c => c._id === q.consumableId);
+      
+      if (!consumable) continue;
 
-    if (quantity > consumable.availableQuantity) {
-      toastError('Requested quantity exceeds available quantity');
-      return false;
+      if (!quantity || quantity <= 0) {
+        setError(`Please enter a valid quantity for ${consumable.consumableName}`);
+        return false;
+      }
+
+      if (quantity > consumable.availableQuantity) {
+        setError(`Requested quantity exceeds available quantity for ${consumable.consumableName}`);
+        return false;
+      }
     }
 
     if (!issuedBy.trim()) {
-      toastError('Please select who is issuing the consumable');
+      setError('Please select who is issuing the consumables');
       return false;
     }
 
     if (!issuedTo.trim()) {
-      toastError('Please select who is receiving the consumable');
+      setError('Please select who is receiving the consumables');
       return false;
     }
 
-    if (!issueDate) {
-      toastError('Please select the issue date');
-      return false;
-    }
-
+    setError(null);
     return true;
   };
 
-  const handleClaimConsumable = async () => {
-    if (!validateForm()) return;
+// ClaimConsumableModal.tsx - Updated handleClaimConsumables function
+const handleClaimConsumables = async () => {
+  if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    try {
-      const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
-      const apiUrl = `${baseUrl}/consumable/claim/${consumable?._id}`;
+  setIsSubmitting(true);
+  setError(null);
+  setSuccessData(null);
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          quantity: Number(claimQuantity),
-          issuedBy,
-          issuedTo,
-          issueDate: new Date(issueDate).toISOString(),
-        }),
-      });
+  try {
+    const baseUrl = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
+    
+    const itemsToSubmit = quantities
+      .filter(q => Number(q.quantity) > 0)
+      .map(q => ({
+        consumableId: q.consumableId,
+        quantity: Number(q.quantity)
+      }));
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Received non-JSON response from server');
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to issue consumable');
-      }
-
-      toastSuccess(data.message || 'Consumable issued successfully');
-      onClaimSuccess();
-      onClose();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      toastError(errorMessage);
-      console.error('Error issuing consumable:', error);
-    } finally {
-      setIsSubmitting(false);
+    if (itemsToSubmit.length === 0) {
+      setError('Please enter quantities for at least one item');
+      return;
     }
-  };
+
+    const response = await fetch(`${baseUrl}/consumable/claim/bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        items: itemsToSubmit,
+        issuedBy,
+        issuedTo
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to claim consumables');
+    }
+
+    // Set the success data from the response
+    if (data.success && data.data) {
+      setSuccessData(data.data);
+      toastSuccess(data.message || 'Consumables claimed successfully');
+      // Don't close the modal immediately so user can see the reference numbers
+    } else {
+      throw new Error('Invalid response format from server');
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    setError(errorMessage);
+    toastError(errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+const handleClose = () => {
+  setSuccessData(null);
+  onClose();
+};
 
   return (
-    <Modal show={isOpen} onClose={onClose} size="lg">
-      <Modal.Header>Issue Consumable</Modal.Header>
-      <Modal.Body>
+    <Modal show={isOpen} onClose={handleClose} size="xl">
+    <Modal.Header>
+      {successData ? 'Issue Complete' : 'Issue Consumables'}
+    </Modal.Header>
+    <Modal.Body>
+      {successData ? (
         <div className="space-y-4">
-          <p>
-            <strong>Consumable:</strong> {consumable?.consumableName}
-          </p>
-          <p>
-            <strong>Available Quantity:</strong> {consumable?.availableQuantity}
-          </p>
-          <div>
-            <strong>Category Details:</strong>
-            {consumable?.categoryFields && Object.keys(consumable.categoryFields).length > 0 ? (
-              <ul className="ml-4 list-disc">
-                {Object.entries(consumable.categoryFields).map(([key, value]) => (
-                  <li key={key}>
-                    <strong>{key}:</strong> {String(value)}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No category details available.</p>
-            )}
+          <div className="p-4 bg-green-50 text-green-800 rounded-lg">
+            <h3 className="font-medium mb-2">Successfully issued consumables</h3>
+            <p className="text-sm">Group Transaction ID: <span className="font-medium">{successData.groupTransactionId}</span></p>
           </div>
-          <div>
-            <Label htmlFor="claimQuantity" value="Quantity to Issue" />
-            <TextInput
-              id="claimQuantity"
-              type="number"
-              value={claimQuantity}
-              onChange={(e) => setClaimQuantity(e.target.value)}
-              disabled={isSubmitting}
-              required
-              min="1"
-              max={consumable?.availableQuantity}
-              className="mt-1"
-            />
+          
+          <div className="mt-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Reference Numbers:</h4>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <Table>
+                <Table.Head>
+                  <Table.HeadCell>Reference Number</Table.HeadCell>
+                  <Table.HeadCell>Item</Table.HeadCell>
+                  <Table.HeadCell>Quantity</Table.HeadCell>
+                </Table.Head>
+                <Table.Body>
+                  {successData.transactions.map((transaction, index) => (
+                    <Table.Row key={index} className="bg-white">
+                      <Table.Cell className="font-medium">{transaction.referenceNumber}</Table.Cell>
+                      <Table.Cell>{transaction.consumableName}</Table.Cell>
+                      <Table.Cell>{transaction.quantity}</Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
+            <p className="text-sm text-gray-600 mt-4">
+              Please save these reference numbers for your records.
+            </p>
           </div>
-
-          <div>
-            <Label htmlFor="issueDate" value="Date of Issue" />
-            <TextInput
-              id="issueDate"
-              type="date"
-              value={issueDate}
-              onChange={(e) => setIssueDate(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="mt-1"
-            />
-          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {error && (
+            <div className="p-4 text-red-700 bg-red-100 rounded-lg">
+              {error}
+            </div>
+          )}
+          
+          <Table>
+            <Table.Head>
+              <Table.HeadCell>Consumable</Table.HeadCell>
+              <Table.HeadCell>Available</Table.HeadCell>
+              <Table.HeadCell>Quantity to Issue</Table.HeadCell>
+            </Table.Head>
+            <Table.Body>
+              {consumables.map((consumable) => (
+                <Table.Row key={consumable._id}>
+                  <Table.Cell>
+                    <div>
+                      <p className="font-medium">{consumable.consumableName}</p>
+                      {consumable.categoryFields && (
+                        <div className="text-sm text-gray-500">
+                          {Object.entries(consumable.categoryFields).map(([key, value]) => (
+                            <span key={key} className="mr-2">
+                              {key}: {String(value)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell>{consumable.availableQuantity}</Table.Cell>
+                  <Table.Cell>
+                    <TextInput
+                      type="number"
+                      value={quantities.find(q => q.consumableId === consumable._id)?.quantity || ''}
+                      onChange={(e) => handleQuantityChange(consumable._id, e.target.value)}
+                      disabled={isSubmitting}
+                      required
+                      min="1"
+                      max={consumable.availableQuantity}
+                      className="w-24"
+                    />
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
 
           <div>
             <Label htmlFor="issuedBy" value="Issued By" />
@@ -309,14 +385,23 @@ const ClaimConsumableModal: React.FC<ClaimConsumableModalProps> = ({
             />
           </div>
         </div>
+        )}
       </Modal.Body>
       <Modal.Footer>
-        <Button color="gray" onClick={onClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button color="blue" onClick={handleClaimConsumable} disabled={isSubmitting}>
-          {isSubmitting ? 'Issuing...' : 'Issue'}
-        </Button>
+        {successData ? (
+          <Button color="gray" onClick={handleClose}>
+            Close
+          </Button>
+        ) : (
+          <>
+            <Button color="gray" onClick={handleClose} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button color="blue" onClick={handleClaimConsumables} disabled={isSubmitting}>
+              {isSubmitting ? 'Issuing...' : 'Issue All'}
+            </Button>
+          </>
+        )}
       </Modal.Footer>
     </Modal>
   );
