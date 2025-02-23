@@ -1,10 +1,14 @@
+// consumableTransaction.ts
 import mongoose, { Schema, Document } from 'mongoose';
 import { IPeople } from './people';
 
-interface IConsumableTransaction extends Document {
+export interface IConsumableTransaction extends Document {
+  transactionId: string;
   consumableName: string;
+  consumableId: mongoose.Schema.Types.ObjectId; // Add this field
   transactionQuantity: number;
   referenceNumber: string;
+  entryReferenceNumber: string; // Add this field
   transactionDate: Date;
   totalConsumableCost: number;
   remainingQuantity: number;
@@ -13,14 +17,34 @@ interface IConsumableTransaction extends Document {
   issuedBy?: mongoose.Schema.Types.ObjectId | IPeople;
   issuedTo?: mongoose.Schema.Types.ObjectId | IPeople;
   transactionType: 'ADD' | 'ISSUE';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
+// Helper function for generating transaction IDs
+export const generateTransactionId = (transactionType: 'ADD' | 'ISSUE'): string => {
+  const timestamp = new Date().getTime();
+  const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const prefix = transactionType === 'ADD' ? 'TRX-ADD-' : 'TRX-ISS-';
+  return `${prefix}${timestamp}-${randomNum}`;
+};
+
 const ConsumableTransactionSchema = new Schema<IConsumableTransaction>({
+  transactionId: { 
+    type: String, 
+    unique: true,
+    required: true
+  },
   consumableName: { type: String, required: true },
   referenceNumber: { 
     type: String, 
     unique: true,
-    sparse: true // This allows multiple documents with null/undefined values
+    sparse: true
+  },
+  consumableId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Consumable',
+    required: true 
   },
   transactionQuantity: { type: Number, required: true },
   transactionDate: { type: Date, default: Date.now, required: true },
@@ -40,8 +64,12 @@ const ConsumableTransactionSchema = new Schema<IConsumableTransaction>({
   validateBeforeSave: true 
 });
 
+// Pre-save middleware for transaction ID generation
 ConsumableTransactionSchema.pre('save', function(next) {
-  // For ISSUE transactions, require reference number and issuedBy/issuedTo
+  if (!this.transactionId) {
+    this.transactionId = generateTransactionId(this.transactionType);
+  }
+
   if (this.transactionType === 'ISSUE') {
     if (!this.referenceNumber) {
       next(new Error('Reference number is required for issue transactions'));
@@ -51,12 +79,14 @@ ConsumableTransactionSchema.pre('save', function(next) {
     }
   }
   
-  // For ADD transactions, require addedBy
   if (this.transactionType === 'ADD' && !this.addedBy) {
     next(new Error('Added by is required for add transactions'));
   }
   
   next();
 });
+
+ConsumableTransactionSchema.index({ transactionId: 1 }, { unique: true });
+ConsumableTransactionSchema.index({ consumableName: 1, transactionDate: -1 });
 
 export const ConsumableTransactionModel = mongoose.model<IConsumableTransaction>('ConsumableTransaction', ConsumableTransactionSchema);
