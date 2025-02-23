@@ -23,7 +23,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT!;
 const url = 'https://bits-inventorymanagement-backend.onrender.com';
-const interval = 30000;
+const interval = 45000;
 
 mongoose.connect(process.env.DB_URI!)
   .then(() => console.log('MongoDB connected'))
