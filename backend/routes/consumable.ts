@@ -95,7 +95,6 @@ router.post(
       const query = {
         consumableName: consumableName,
         categoryFields: normalizedCategoryFields,
-        entryReferenceNumber: entryReferenceNumber // Add to query
       };
 
       let savedConsumable = await ConsumableModel.findOneAndUpdate(
@@ -132,7 +131,8 @@ const transaction = new ConsumableTransactionModel({
   categoryFields: savedConsumable.categoryFields,
   transactionDate: date || new Date(),
   addedBy,
-  transactionType: 'ADD'
+  transactionType: 'ADD',
+  entryReferenceNumber: entryReferenceNumber // Add this line
 });
 
 await transaction.save({ session });
