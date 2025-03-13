@@ -58,6 +58,13 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
   const [loading, setLoading] = useState<boolean>(false);
   const [categoryFields, setCategoryFields] = useState<any[]>([]);
   const [categoryFieldValues, setCategoryFieldValues] = useState<{ [key: string]: any }>({});
+  
+  // State for modal steps
+  const [currentStep, setCurrentStep] = useState<'form' | 'review' | 'success'>('form');
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
+  const [selectedVendorName, setSelectedVendorName] = useState<string>('');
+  const [selectedPersonName, setSelectedPersonName] = useState<string>('');
+  const [summaryData, setSummaryData] = useState<Consumable | null>(null);
 
   const fetchCategories = async () => {
     try {
@@ -102,15 +109,35 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     setCategory(selectedCategoryId);
     const selectedCategory = categories.find((cat) => cat._id === selectedCategoryId);
 
-    if (selectedCategory?.fields) {
-      setCategoryFields(selectedCategory.fields);
-      const initialFieldValues: { [key: string]: any } = {};
-      selectedCategory.fields.forEach((field) => {
-        initialFieldValues[field.name] = '';
-      });
-      setCategoryFieldValues(initialFieldValues);
-    } else {
-      setCategoryFields([]);
+    if (selectedCategory) {
+      setSelectedCategoryName(selectedCategory.consumableName);
+      
+      if (selectedCategory.fields) {
+        setCategoryFields(selectedCategory.fields);
+        const initialFieldValues: { [key: string]: any } = {};
+        selectedCategory.fields.forEach((field) => {
+          initialFieldValues[field.name] = '';
+        });
+        setCategoryFieldValues(initialFieldValues);
+      } else {
+        setCategoryFields([]);
+      }
+    }
+  };
+
+  const handleVendorChange = (selectedVendorId: string) => {
+    setVendor(selectedVendorId);
+    const selectedVendor = vendors.find((v) => v._id === selectedVendorId);
+    if (selectedVendor) {
+      setSelectedVendorName(selectedVendor.name);
+    }
+  };
+
+  const handlePersonChange = (selectedPersonId: string) => {
+    setAddedBy(selectedPersonId);
+    const selectedPerson = people.find((p) => p._id === selectedPersonId);
+    if (selectedPerson) {
+      setSelectedPersonName(selectedPerson.name);
     }
   };
 
@@ -119,7 +146,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     return pattern.test(refNumber);
   };
 
-  const handleSubmit = async () => {
+  const handleGoToReview = () => {
     if (!category || !quantity || !unitPrice || !vendor || !addedBy || !date || !entryReferenceNumber) {
       toastError('Please fill in all required fields.');
       return;
@@ -136,28 +163,41 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
       return;
     }
 
+    const newConsumable: Consumable = {
+      quantity: Number(quantity),
+      unitPrice: Number(unitPrice),
+      vendor,
+      addedBy,
+      date,
+      totalCost: Number(totalCost),
+      consumableName: selectedCategory.consumableName,
+      entryReferenceNumber,
+      categoryFields: categoryFieldValues,
+    };
+
+    setSummaryData(newConsumable);
+    setCurrentStep('review');
+  };
+
+  const handleGoBackToForm = () => {
+    setCurrentStep('form');
+  };
+
+  const handleSubmit = async () => {
+    if (!summaryData) {
+      toastError('No data to submit');
+      return;
+    }
+
     setLoading(true);
     try {
-      const newConsumable: Consumable = {
-        quantity: Number(quantity),
-        unitPrice: Number(unitPrice),
-        vendor,
-        addedBy,
-        date,
-        totalCost: Number(totalCost),
-        consumableName: selectedCategory.consumableName,
-        entryReferenceNumber, // Added new field
-        categoryFields: categoryFieldValues,
-      };
-
-      await onSubmit(newConsumable);
-      toastSuccess(`${selectedCategory.consumableName} added successfully`);
-      onClose();
-      resetForm();
+      await onSubmit(summaryData);
+      toastSuccess(`${selectedCategoryName} added successfully`);
+      setCurrentStep('success');
+      setLoading(false);
     } catch (error) {
       console.error('Error adding consumable:', error);
       toastError('Error adding consumable: ' + (error as Error).message);
-    } finally {
       setLoading(false);
     }
   };
@@ -170,8 +210,22 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     setAddedBy('');
     setDate('');
     setTotalCost('');
-    setEntryReferenceNumber(''); // Reset entry reference number
+    setEntryReferenceNumber('');
     setCategoryFieldValues({});
+    setSelectedCategoryName('');
+    setSelectedVendorName('');
+    setSelectedPersonName('');
+    setSummaryData(null);
+    setCurrentStep('form');
+  };
+
+  const handleAddAnother = () => {
+    resetForm();
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
   };
 
   useEffect(() => {
@@ -188,6 +242,173 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
     setTotalCost(isNaN(cost) ? 0 : cost);
   }, [quantity, unitPrice]);
 
+  // Render success screen
+  if (currentStep === 'success' && summaryData) {
+    return (
+      <Modal show={isOpen} onClose={onClose}>
+        <Modal.Header>Consumable Added Successfully</Modal.Header>
+        <Modal.Body>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <h3 className="text-lg font-semibold text-green-800 mb-2">
+              {selectedCategoryName} has been added to inventory
+            </h3>
+            <p className="text-green-700">Reference Number: {summaryData.entryReferenceNumber}</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Category</p>
+                <p className="text-md font-semibold">{selectedCategoryName}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Quantity</p>
+                <p className="text-md font-semibold">{summaryData.quantity}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Unit Price</p>
+                <p className="text-md font-semibold">₹{summaryData.unitPrice.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Cost</p>
+                <p className="text-md font-semibold">₹{Number(summaryData.totalCost).toFixed(2)}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Vendor</p>
+                <p className="text-md font-semibold">{selectedVendorName}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Added By</p>
+                <p className="text-md font-semibold">{selectedPersonName}</p>
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-sm font-medium text-gray-500">Date</p>
+              <p className="text-md font-semibold">{new Date(summaryData.date).toLocaleDateString()}</p>
+            </div>
+            
+            {Object.keys(summaryData.categoryFields || {}).length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Category Fields</p>
+                <div className="bg-gray-50 p-3 rounded-md">
+                  {Object.entries(summaryData.categoryFields || {}).map(([key, value]) => (
+                    <div key={key} className="grid grid-cols-2 gap-2">
+                      <p className="text-sm font-medium text-gray-500">{key}:</p>
+                      <p className="text-sm">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={handleClose} color="gray">
+            Close
+          </Button>
+          <Button onClick={handleAddAnother} color="blue">
+            Add Another
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+
+  // Render review screen
+  if (currentStep === 'review' && summaryData) {
+    return (
+      <Modal show={isOpen} onClose={onClose}>
+        <Modal.Header>Review Consumable Details</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Reference Number</p>
+                <p className="text-md font-semibold">{summaryData.entryReferenceNumber}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Category</p>
+                <p className="text-md font-semibold">{selectedCategoryName}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Quantity</p>
+                <p className="text-md font-semibold">{summaryData.quantity}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Unit Price</p>
+                <p className="text-md font-semibold">₹{summaryData.unitPrice.toFixed(2)}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Cost</p>
+                <p className="text-md font-semibold">₹{Number(summaryData.totalCost).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Vendor</p>
+                <p className="text-md font-semibold">{selectedVendorName}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Added By</p>
+                <p className="text-md font-semibold">{selectedPersonName}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Date</p>
+                <p className="text-md font-semibold">{new Date(summaryData.date).toLocaleDateString()}</p>
+              </div>
+            </div>
+            
+            {Object.keys(summaryData.categoryFields || {}).length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Category Fields</p>
+                <div className="bg-gray-50 p-3 rounded-md">
+                  {Object.entries(summaryData.categoryFields || {}).map(([key, value]) => (
+                    <div key={key} className="grid grid-cols-2 gap-2">
+                      <p className="text-sm font-medium text-gray-500">{key}:</p>
+                      <p className="text-sm">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
+              <p className="text-sm text-blue-700">
+                Please review the information above. Click "Edit" to make changes or "Confirm" to proceed.
+              </p>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={handleClose} color="gray">
+            Cancel
+          </Button>
+          <Button onClick={handleGoBackToForm} color="light">
+            Edit
+          </Button>
+          <Button onClick={handleSubmit} color="blue" disabled={loading}>
+            {loading ? 'Processing...' : 'Confirm'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+
+  // Render form screen (default)
   return (
     <Modal show={isOpen} onClose={onClose}>
       <Modal.Header>Add New Consumable</Modal.Header>
@@ -287,7 +508,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
             <Select
               id="vendor"
               value={vendor}
-              onChange={(e) => setVendor(e.target.value)}
+              onChange={(e) => handleVendorChange(e.target.value)}
               required
             >
               <option value="" disabled>Select Vendor</option>
@@ -303,7 +524,7 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
             <Select
               id="addedBy"
               value={addedBy}
-              onChange={(e) => setAddedBy(e.target.value)}
+              onChange={(e) => handlePersonChange(e.target.value)}
               required
             >
               <option value="" disabled>Select Person</option>
@@ -334,8 +555,8 @@ const AddConsumableModal: React.FC<AddConsumableModalProps> = ({ isOpen, onClose
         <Button onClick={onClose} color="gray" disabled={loading}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Adding...' : 'Add Consumable'}
+        <Button onClick={handleGoToReview} color="blue" disabled={loading}>
+          Review Entries
         </Button>
       </Modal.Footer>
     </Modal>
