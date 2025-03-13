@@ -16,7 +16,7 @@ router.post(
     session.startTransaction();
 
     try {
-      // 1. Find the transaction to be deleted
+      // 1. Find the transaction to be marked as deleted
       const transaction = await ConsumableTransactionModel.findById(_id);
       if (!transaction) {
         throw new Error('Transaction not found');
@@ -24,8 +24,12 @@ router.post(
 
       // 2. For single ADD transaction
       if (transaction.transactionType === 'ADD') {
-        // Delete the transaction
-        await ConsumableTransactionModel.findByIdAndDelete(_id, { session });
+        // Mark the transaction as deleted instead of physically removing it
+        await ConsumableTransactionModel.findByIdAndUpdate(
+          _id,
+          { isDeleted: true },
+          { session }
+        );
 
         // Update the specific consumable quantity
         const updatedConsumable = await ConsumableModel.findByIdAndUpdate(
@@ -60,8 +64,12 @@ router.post(
 
         // Process each transaction
         for (const tx of transactionsToDelete) {
-          // Delete the transaction
-          await ConsumableTransactionModel.findByIdAndDelete(tx._id, { session });
+          // Mark the transaction as deleted instead of physically removing it
+          await ConsumableTransactionModel.findByIdAndUpdate(
+            tx._id,
+            { isDeleted: true },
+            { session }
+          );
 
           // Update the specific consumable's claimed quantity
           const updatedConsumable = await ConsumableModel.findByIdAndUpdate(
@@ -86,7 +94,7 @@ router.post(
 
       await session.commitTransaction();
       res.status(200).json({ 
-        message: 'Transaction(s) deleted successfully'
+        message: 'Transaction(s) marked as deleted successfully'
       });
     } catch (error) {
       await session.abortTransaction();
@@ -100,6 +108,5 @@ router.post(
     }
   }
 );
-
 
 export default router;
