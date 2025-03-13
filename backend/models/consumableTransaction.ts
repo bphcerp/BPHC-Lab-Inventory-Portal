@@ -19,6 +19,7 @@ export interface IConsumableTransaction extends Document {
   transactionType: 'ADD' | 'ISSUE';
   createdAt: Date;
   updatedAt: Date;
+  isDeleted: boolean; // Added isDeleted field
 }
 
 // Helper function for generating transaction IDs
@@ -46,6 +47,13 @@ const ConsumableTransactionSchema = new Schema<IConsumableTransaction>({
     ref: 'Consumable',
     required: true 
   },
+  entryReferenceNumber: { 
+    type: String, 
+    required: function() {
+      return this.transactionType === 'ADD'; // Only required for ADD transactions
+    },  // Make it required
+    index: true      // Index it for faster lookups
+  },
   transactionQuantity: { type: Number, required: true },
   transactionDate: { type: Date, default: Date.now, required: true },
   remainingQuantity: { type: Number, required: true },
@@ -54,6 +62,7 @@ const ConsumableTransactionSchema = new Schema<IConsumableTransaction>({
   addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'People' },
   issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'People' },
   issuedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'People' },
+  isDeleted: { type: Boolean, default: false }, // Default to false
   transactionType: { 
     type: String, 
     required: true,
@@ -88,5 +97,6 @@ ConsumableTransactionSchema.pre('save', function(next) {
 
 ConsumableTransactionSchema.index({ transactionId: 1 }, { unique: true });
 ConsumableTransactionSchema.index({ consumableName: 1, transactionDate: -1 });
+ConsumableTransactionSchema.index({ entryReferenceNumber: 1 }, { unique: true });
 
 export const ConsumableTransactionModel = mongoose.model<IConsumableTransaction>('ConsumableTransaction', ConsumableTransactionSchema);
