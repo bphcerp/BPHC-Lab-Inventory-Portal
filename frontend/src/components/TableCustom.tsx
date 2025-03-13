@@ -14,7 +14,7 @@ import {
     OnChangeFn,
     VisibilityState
 } from "@tanstack/react-table";
-import { TextInput, Table, Button } from "flowbite-react";
+import { TextInput, Table, Button, Checkbox } from "flowbite-react";
 import { FunctionComponent, useMemo, useState, useEffect, useCallback } from "react";
 
 // Add type for multi-select filter values
@@ -53,11 +53,12 @@ const TableCustom: FunctionComponent<TableCustomProps> = ({
     data, 
     columns, 
     initialState,
-    enableRowSelection = false,
+    //enableRowSelection = false,
     onRowSelectionChange 
 }) => {
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [openFilterDropdown, setOpenFilterDropdown] = useState<string | null>(null);
 
     useEffect(() => {
         if (initialState?.columnVisibility) {
@@ -69,10 +70,10 @@ const TableCustom: FunctionComponent<TableCustomProps> = ({
         columns.map(column =>
             column.meta?.filterType === "dropdown"
                 ? { ...column, filterFn: "equalsString" }
-                : column.meta?.filterType === "numeric"
-                ? { ...column, filterFn: numericFilter }
                 : column.meta?.filterType === "multi-select"
                 ? { ...column, filterFn: multiSelectFilter }
+                : column.meta?.filterType === "numeric"
+                ? { ...column, filterFn: numericFilter }
                 : column
         ),
         [columns]
@@ -84,7 +85,7 @@ const TableCustom: FunctionComponent<TableCustomProps> = ({
         });
     }, []);
 
-    const notifyParentOfSelection = useCallback((_: RowSelectionState, tableInstance: any) => {
+    const notifyParentOfSelection = useCallback((tableInstance: any) => {
         if (onRowSelectionChange) {
             const selectedRows = tableInstance
                 .getSelectedRowModel()
@@ -101,7 +102,7 @@ const TableCustom: FunctionComponent<TableCustomProps> = ({
             rowSelection,
             columnVisibility,
         },
-        enableRowSelection,
+        enableRowSelection: true,
         onRowSelectionChange: handleRowSelectionChange,
         onColumnVisibilityChange: setColumnVisibility,
         getCoreRowModel: getCoreRowModel(),
@@ -112,8 +113,32 @@ const TableCustom: FunctionComponent<TableCustomProps> = ({
         getPaginationRowModel: getPaginationRowModel(),
     });
 
-useEffect(() => {
-        notifyParentOfSelection(rowSelection, table);
+    // Helper function to handle multi-select changes
+    const handleMultiSelectChange = (column: any, value: string) => {
+        const currentValues = (column.getFilterValue() || []) as string[];
+        const newValues = currentValues.includes(value)
+            ? currentValues.filter(v => v !== value)
+            : [...currentValues, value];
+        column.setFilterValue(newValues);
+    };
+
+    // Close filter dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.filter-dropdown') && !target.closest('.filter-button')) {
+                setOpenFilterDropdown(null);
+            }
+        };
+        
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    useEffect(() => {
+        notifyParentOfSelection(table);
     }, [rowSelection, notifyParentOfSelection, table]);
 
     return (
@@ -138,18 +163,103 @@ useEffect(() => {
                                             {header.column.getCanFilter() ? (
                                                 <div className="mt-2">
                                                     {header.column.columnDef.meta?.filterType === "dropdown" ? (
-                                                        <select
-                                                            onChange={e => header.column.setFilterValue(e.target.value)}
-                                                            value={(header.column.getFilterValue() ?? "") as string}
-                                                            className="bg-white border border-gray-300 p-2 rounded-md text-sm w-full"
-                                                        >
-                                                            <option value="">All</option>
-                                                            {Array.from(header.column.getFacetedUniqueValues().keys())
-                                                                .sort()
-                                                                .map(value => (
-                                                                    <option key={value} value={value}>{value}</option>
-                                                                ))}
-                                                        </select>
+                                                        <div className="relative">
+                                                            <button
+                                                                className="filter-button bg-white border border-gray-300 p-2 rounded-md text-sm w-full flex justify-between items-center"
+                                                                onClick={() => setOpenFilterDropdown(openFilterDropdown === header.id ? null : header.id)}
+                                                            >
+                                                                <span>
+                                                                    {(header.column.getFilterValue() as string) || "All"}
+                                                                </span>
+                                                                <span className="ml-2">▼</span>
+                                                            </button>
+                                                            <select
+                                                                onChange={e => header.column.setFilterValue(e.target.value)}
+                                                                value={(header.column.getFilterValue() ?? "") as string}
+                                                                className="sr-only"
+                                                            >
+                                                                <option value="">All</option>
+                                                                {Array.from(header.column.getFacetedUniqueValues().keys())
+                                                                    .sort()
+                                                                    .map(value => (
+                                                                        <option key={value} value={value}>{value}</option>
+                                                                    ))}
+                                                            </select>
+                                                            {openFilterDropdown === header.id && (
+                                                                <div className="filter-dropdown absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                                                                    <div 
+                                                                        className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                                                                        onClick={() => {
+                                                                            header.column.setFilterValue("");
+                                                                            setOpenFilterDropdown(null);
+                                                                        }}
+                                                                    >
+                                                                        All
+                                                                    </div>
+                                                                    {Array.from(header.column.getFacetedUniqueValues().keys())
+                                                                        .sort()
+                                                                        .filter(value => value)
+                                                                        .map(value => (
+                                                                            <div
+                                                                                key={value}
+                                                                                className="p-2 hover:bg-gray-100 cursor-pointer"
+                                                                                onClick={() => {
+                                                                                    header.column.setFilterValue(value);
+                                                                                    setOpenFilterDropdown(null);
+                                                                                }}
+                                                                            >
+                                                                                {value}
+                                                                            </div>
+                                                                        ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : header.column.columnDef.meta?.filterType === "multi-select" ? (
+                                                        <div className="relative">
+                                                            <button
+                                                                className="filter-button bg-white border border-gray-300 p-2 rounded-md text-sm w-full flex justify-between items-center"
+                                                                onClick={() => setOpenFilterDropdown(openFilterDropdown === header.id ? null : header.id)}
+                                                            >
+                                                                <span>
+                                                                    {(header.column.getFilterValue() as string[])?.length 
+                                                                        ? `${(header.column.getFilterValue() as string[]).length} selected` 
+                                                                        : "All"}
+                                                                </span>
+                                                                <span className="ml-2">▼</span>
+                                                            </button>
+                                                            {openFilterDropdown === header.id && (
+                                                                <div className="filter-dropdown absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                                                                    <div 
+                                                                        className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                                                                        onClick={() => {
+                                                                            header.column.setFilterValue([]);
+                                                                        }}
+                                                                    >
+                                                                        Clear all
+                                                                    </div>
+                                                                    {Array.from(header.column.getFacetedUniqueValues().keys())
+                                                                        .sort()
+                                                                        .filter(value => value)
+                                                                        .map(value => {
+                                                                            const isSelected = (header.column.getFilterValue() as string[])?.includes(value);
+                                                                            return (
+                                                                                <div
+                                                                                    key={value}
+                                                                                    className="p-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                                                                                    onClick={() => handleMultiSelectChange(header.column, value)}
+                                                                                >
+                                                                                    <Checkbox 
+                                                                                        className="mr-2" 
+                                                                                        checked={isSelected}
+                                                                                        onChange={() => {}}
+                                                                                    />
+                                                                                    {value}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     ) : (
                                                         <TextInput
                                                             className="w-full"
