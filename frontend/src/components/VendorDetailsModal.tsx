@@ -13,22 +13,31 @@ interface VendorDetailsModalProps {
   vendorName: string;
   isOpen: boolean;
   onClose: () => void;
+  consumables?: Consumable[]; // Add the consumables prop here, making it optional
 }
 
 const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
   vendorName,
   isOpen,
   onClose,
+  consumables: initialConsumables, // Rename to avoid conflict with state variable
 }) => {
-  const [consumables, setConsumables] = useState<Consumable[]>([]);
+  const [consumables, setConsumables] = useState<Consumable[]>(initialConsumables || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If initialConsumables is provided, use those instead of fetching
+    if (initialConsumables && initialConsumables.length > 0) {
+      setConsumables(initialConsumables);
+      return;
+    }
+    
+    // Otherwise, fetch from the API as before
     if (isOpen && vendorName) {
       fetchVendorDetails();
     }
-  }, [isOpen, vendorName]);
+  }, [isOpen, vendorName, initialConsumables]);
 
   const fetchVendorDetails = async () => {
     setLoading(true);
@@ -88,7 +97,7 @@ const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap">{consumable.quantity}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{new Date(consumable.date).toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {Object.entries(consumable.categoryFields).map(([key, value]) => (
+                      {Object.entries(consumable.categoryFields || {}).map(([key, value]) => (
                         <p key={key}>
                           <strong>{key}:</strong> {value}
                         </p>
