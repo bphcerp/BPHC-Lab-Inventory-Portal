@@ -7,7 +7,7 @@ import LoginPage from './pages/LoginPage'
 import Layout from './layouts/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import ConsumablesPage from './pages/ConsumablesPage'
-import OutPage from './pages/OutPage' // Import the new OUT page component
+import OutPage from './pages/OutPage'
 import AddVendorPage from './pages/AddVendorPage'
 import AddPeoplePage from './pages/AddPeoplePage'
 import Dashboard from './pages/Dashboard'
@@ -27,19 +27,25 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<ProtectedRoute homePage={true} />} />
+          <Route path='/login' element={<LoginPage />} />
+          
+          {/* Dashboard routes - accessible by all authenticated users */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route path='/dashboard' element={<Dashboard />} />
-            <Route path='/consumables' element={<ConsumablesPage />} />
-            <Route path='/out' element={<OutPage />} /> {/* New route for OUT page */}
+            <Route path='/dashboard' element={<Dashboard />} />
+          </Route>
+          
+          {/* Admin-only routes */}
+          <Route element={<ProtectedRoute requiredRole="admin"><Layout /></ProtectedRoute>}>
+          <Route path='/consumables' element={<ConsumablesPage />} />
+            <Route path='/out' element={<OutPage />} />
             <Route path='/history' element={<ConsumableHistoryPage />} />
+            <Route path='/report' element={<Report />} />
+            <Route path='/help' element={<Help />} />
             <Route path='/vendors' element={<AddVendorPage />} />
             <Route path='/people' element={<AddPeoplePage />} />
             <Route path='/category' element={<AddCategoryTypePage />} />
-            <Route path='/report' element={<Report />} />
-            <Route path='/help' element={<Help />} />
             <Route path='/admin' element={<AdminPage />} />
           </Route>
-          <Route path='/login' element={<LoginPage />} />
         </Routes>
       </BrowserRouter>
     </React.StrictMode>
