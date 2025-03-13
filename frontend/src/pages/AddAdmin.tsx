@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextInput, Table, Pagination } from 'flowbite-react';
-import { FaTrash } from 'react-icons/fa';
+import { Button, TextInput, Table, Pagination, Badge } from 'flowbite-react';
+import { FaTrash, FaEdit } from 'react-icons/fa';
 import { toastError, toastSuccess } from "../toasts";
 import AddAdminEntryModal from "../components/AddAdminEntryModal";
 import DeleteAdminEntryModal from "../components/DeleteAdminEntryModal";
@@ -13,6 +13,7 @@ const AdminPage: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<any | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [editingUser, setEditingUser] = useState<any | null>(null);
     const itemsPerPage = 10;
 
     const fetchUsers = async () => {
@@ -36,26 +37,65 @@ const AdminPage: React.FC = () => {
     }, []);
 
     const handleModalSubmit = async (formData: any) => {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user`, {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData),
-        });
+        if (editingUser) {
+            // Update existing user
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/${editingUser._id}`, {
+                method: "PUT",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+            });
 
-        if (res.ok) {
-            toastSuccess("User added!");
-            fetchUsers();
+            if (res.ok) {
+                toastSuccess("User updated!");
+                setEditingUser(null);
+            } else {
+                toastError((await res.json()).message ?? "Something went wrong");
+            }
         } else {
-            toastError((await res.json()).message ?? "Something went wrong");
+            // Create new user
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+            });
+
+            if (res.ok) {
+                toastSuccess("User added!");
+            } else {
+                toastError((await res.json()).message ?? "Something went wrong");
+            }
         }
 
+        fetchUsers();
         setIsModalOpen(false);
     };
+
+    // const handleRoleChange = async (userId: string, newRole: string) => {
+    //     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/${userId}/role`, {
+    //         method: "PATCH",
+    //         credentials: "include",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ role: newRole }),
+    //     });
+
+    //     if (res.ok) {
+    //         toastSuccess("User role updated!");
+    //         fetchUsers();
+    //     } else {
+    //         toastError((await res.json()).message ?? "Something went wrong");
+    //     }
+    // };
 
     const handleDelete = (rowData: any) => {
         setItemToDelete(rowData);
         setIsDeleteModalOpen(true);
+    };
+
+    const handleEdit = (rowData: any) => {
+        setEditingUser(rowData);
+        setIsModalOpen(true);
     };
 
     const handleDeleteConfirm = async () => {
@@ -96,8 +136,22 @@ const AdminPage: React.FC = () => {
     const currentItems = filteredData.slice(startIndex, endIndex);
 
     const getTableHeaders = () => {
-        if (data.length === 0) return [];
-        return Object.keys(data[0]).filter(key => key !== '_id' && key !== '__v');
+        if (data.length === 0) return ['Name', 'Email', 'Role'];
+        // Filter out _id and __v, but ensure 'role' is included
+        const headers = Object.keys(data[0])
+            .filter(key => key !== '_id' && key !== '__v')
+            .map(header => header.charAt(0).toUpperCase() + header.slice(1).replace(/_/g, ' '));
+        
+        if (!headers.includes('Role')) headers.push('Role');
+        return [...headers, 'Actions'];
+    };
+
+    const getAccessLevelBadge = (role: string) => {
+        if (role === 'admin') {
+            return <Badge color="indigo">Admin</Badge>;
+        } else {
+            return <Badge color="gray">Dashboard Only</Badge>;
+        }
     };
 
     return (
@@ -106,16 +160,20 @@ const AdminPage: React.FC = () => {
 
             <AddAdminEntryModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingUser(null);
+                }}
                 onSubmit={handleModalSubmit}
                 selectedConfig={"User"}
+                initialData={editingUser}
             />
 
             <DeleteAdminEntryModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onDelete={handleDeleteConfirm}
-                itemName={"User"}
+                itemName={itemToDelete?.name || "User"}
             />
 
             <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-4">
@@ -136,22 +194,27 @@ const AdminPage: React.FC = () => {
                     <Table.Head>
                         {getTableHeaders().map((header) => (
                             <Table.HeadCell key={header} className="text-center">
-                                {header.charAt(0).toUpperCase() + header.slice(1).replace(/_/g, ' ')}
+                                {header}
                             </Table.HeadCell>
                         ))}
-                        <Table.HeadCell className="text-center">Actions</Table.HeadCell>
                     </Table.Head>
                     <Table.Body>
                         {currentItems.length > 0 ? (
                             currentItems.map((item) => (
                                 <Table.Row key={item._id}>
-                                    {getTableHeaders().map((header) => (
-                                        <Table.Cell key={header} className="text-center">
-                                            {item[header]}
-                                        </Table.Cell>
-                                    ))}
+                                    <Table.Cell className="text-center">{item.name}</Table.Cell>
+                                    <Table.Cell className="text-center">{item.email}</Table.Cell>
                                     <Table.Cell className="text-center">
-                                        <div className="flex justify-center">
+                                        {getAccessLevelBadge(item.role)}
+                                    </Table.Cell>
+                                    <Table.Cell className="text-center">
+                                        <div className="flex justify-center space-x-2">
+                                            <button
+                                                onClick={() => handleEdit(item)}
+                                                className="text-blue-600 hover:text-blue-800"
+                                            >
+                                                <FaEdit size={14} />
+                                            </button>
                                             <button
                                                 onClick={() => handleDelete(item)}
                                                 className="text-red-600 hover:text-red-800"
@@ -164,7 +227,7 @@ const AdminPage: React.FC = () => {
                             ))
                         ) : (
                             <Table.Row>
-                                <Table.Cell colSpan={getTableHeaders().length + 1} className="text-center">
+                                <Table.Cell colSpan={getTableHeaders().length} className="text-center">
                                     No users found.
                                 </Table.Cell>
                             </Table.Row>
