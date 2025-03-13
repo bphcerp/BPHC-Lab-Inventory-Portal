@@ -1,14 +1,13 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { MdOutlineInventory } from "react-icons/md";
-import { FaSignOutAlt, FaUserPlus } from "react-icons/fa";
-import { BiSolidFileExport } from "react-icons/bi";
-import { MdOutlineSpaceDashboard } from "react-icons/md";
-import { IoMdPeople, IoMdHelpBuoy } from "react-icons/io";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  MdOutlineInventory,
+  MdOutlineSpaceDashboard,
+} from "react-icons/md";
+import { FaSignOutAlt } from "react-icons/fa";
 import { GrTransaction } from "react-icons/gr";
-import { TbCategoryPlus } from "react-icons/tb";
-import { RiAdminLine } from "react-icons/ri";
-import { AiOutlineCaretDown, AiOutlineSetting } from "react-icons/ai";
+import { IoMdPeople, IoMdHelpBuoy } from "react-icons/io";
+import { AiOutlineSetting } from "react-icons/ai";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -17,6 +16,7 @@ interface SidebarProps {
 
 const SidebarComponent: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -25,6 +25,7 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         method: "POST",
         credentials: "include",
       });
+      onClose(); // Close sidebar before navigation
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
@@ -33,53 +34,87 @@ const SidebarComponent: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const handleNavigation = (path: string) => {
     navigate(path);
-    onClose();
+    onClose(); // Close sidebar after navigation
   };
+
+  const mainMenuItems = [
+    { path: "/dashboard", icon: <MdOutlineSpaceDashboard />, label: "Inventory" },
+    { path: "/consumables", icon: <MdOutlineInventory />, label: "Add Consumable" },
+    { path: "/out", icon: <FaSignOutAlt />, label: "Issue Consumable" },
+    { path: "/history", icon: <GrTransaction />, label: "History" },
+  ];
+
+  const adminMenuItems = [
+    { path: "/vendors", icon: <IoMdPeople />, label: "Vendors" },
+    { path: "/people", icon: <IoMdPeople />, label: "Users" },
+    { path: "/category", icon: <AiOutlineSetting />, label: "Categories" },
+    { path: "/admin", icon: <AiOutlineSetting />, label: "Admins" },
+    { path: "/report", icon: <AiOutlineSetting />, label: "Reports" },
+  ];
+
+  const isCurrentPath = (path: string) => location.pathname === path;
 
   return (
     <div
-      className={`fixed z-10 top-16 left-0 w-64 h-[calc(100vh-4rem)] bg-gray-100 text-gray-900 flex flex-col shadow-md transform transition-transform duration-300 ease-in-out ${
+      className={`fixed z-20 top-16 left-0 w-56 h-[calc(100vh-4rem)] bg-white shadow-lg transform transition-transform duration-200 ease-in-out ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >
-      <nav className="flex flex-col flex-grow mt-4">
-        <NavItem onClick={() => handleNavigation("/dashboard")} to="/dashboard" icon={<MdOutlineSpaceDashboard />} label="Dashboard" />
-        <NavItem onClick={() => handleNavigation("/consumables")} to="/consumables" icon={<MdOutlineInventory />} label="Add Consumables" />
-        <NavItem onClick={() => handleNavigation("/out")} to="/out" icon={<FaSignOutAlt />} label="Issue Consumable" />
-        <NavItem onClick={() => handleNavigation("/history")} to="/history" icon={<GrTransaction />} label="Transaction History" />
-        <div className="relative mx-3 mb-2">
-          <button
-            onClick={() => setIsAdminOpen(!isAdminOpen)}
-            className="flex items-center justify-between w-full px-4 py-3 bg-gray-200 hover:bg-gray-300 rounded-lg transition"
-          >
-            <div className="flex items-center">
-              <AiOutlineSetting className="text-xl mr-3" />
-              <span className="text-lg font-semibold">Admin</span>
-            </div>
-            <AiOutlineCaretDown
-              className={`transition-transform ${isAdminOpen ? "rotate-180" : ""}`}
+      <nav className="flex flex-col h-full">
+        <div className="flex-1 py-4">
+          {mainMenuItems.map((item) => (
+            <NavItem
+              key={item.path}
+              to={item.path}
+              icon={item.icon}
+              label={item.label}
+              isActive={isCurrentPath(item.path)}
+              onClick={() => handleNavigation(item.path)}
             />
-          </button>
-          {isAdminOpen && (
-            <div className="absolute top-full left-0 w-full bg-gray-100 shadow-lg rounded-lg mt-1 overflow-hidden">
-              <NavItem onClick={() => handleNavigation("/vendors")} to="/vendors" icon={<FaUserPlus />} label="Add Vendor" />
-              <NavItem onClick={() => handleNavigation("/people")} to="/people" icon={<IoMdPeople />} label="Add User" />
-              <NavItem onClick={() => handleNavigation("/category")} to="/category" icon={<TbCategoryPlus />} label="Add Category" />
-              <NavItem onClick={() => handleNavigation("/report")} to="/report" icon={<BiSolidFileExport />} label=" Generate Report" />
-              <NavItem onClick={() => handleNavigation("/admin")} to="/admin" icon={<RiAdminLine />} label=" Add Admin" />
+          ))}
+
+          <div className="px-4 py-2 mt-4">
+            <div
+              className={`text-sm font-medium text-black-400 cursor-pointer hover:text-gray-600 transition-colors ${
+                isAdminOpen ? "mb-2" : ""
+              }`}
+              onClick={() => setIsAdminOpen(!isAdminOpen)}
+            >
+              Admin
             </div>
-          )}
+            {isAdminOpen && (
+              <div className="ml-2">
+                {adminMenuItems.map((item) => (
+                  <NavItem
+                    key={item.path}
+                    to={item.path}
+                    icon={item.icon}
+                    label={item.label}
+                    isActive={isCurrentPath(item.path)}
+                    onClick={() => handleNavigation(item.path)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-100">
+          <NavItem
+            to="/help"
+            icon={<IoMdHelpBuoy />}
+            label="Help"
+            onClick={() => handleNavigation("/help")}
+            isActive={isCurrentPath("/help")}
+          />
+          <button
+            className="w-full mt-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors duration-150"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
         </div>
       </nav>
-      <div className="px-4 py-3 border-t border-gray-300">
-        <NavItem onClick={() => handleNavigation("/help")} to="/help" icon={<IoMdHelpBuoy />} label=" Help" />
-        <button
-          className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition"
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
-      </div>
     </div>
   );
 };
@@ -88,14 +123,19 @@ const NavItem: React.FC<{
   to: string;
   icon: React.ReactNode;
   label: string;
+  isActive?: boolean;
   onClick?: () => void;
-}> = ({ icon, label, onClick }) => (
+}> = ({ icon, label, isActive, onClick }) => (
   <div
     onClick={onClick}
-    className="flex items-center px-4 py-3 hover:bg-gray-200 rounded-lg transition cursor-pointer"
+    className={`flex items-center px-4 py-2 my-1 text-sm rounded-md cursor-pointer transition-colors duration-150 ${
+      isActive
+        ? "bg-gray-100 text-gray-900 font-medium"
+        : "text-gray-600 hover:bg-gray-50"
+    }`}
   >
-    <span className="mr-3">{icon}</span>
-    <span className="text-lg font-semibold">{label}</span>
+    <span className="text-lg mr-3">{icon}</span>
+    <span>{label}</span>
   </div>
 );
 
