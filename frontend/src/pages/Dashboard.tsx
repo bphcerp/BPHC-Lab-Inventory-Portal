@@ -5,6 +5,7 @@ import { ColumnDef, VisibilityState } from '@tanstack/react-table';
 import ConsumableDetailsModal from '../components/ConsumableDetailsModal';
 import { Button } from 'flowbite-react';
 import { HiEye, HiEyeOff } from 'react-icons/hi';
+import AuthDebug from '../components/AuthDebug';
 
 export interface Consumable {
   _id: string;
@@ -24,6 +25,25 @@ const Dashboard: React.FC = () => {
   const [modalConsumable, setModalConsumable] = useState<Consumable | null>(null);
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [userRole, setUserRole] = useState<string | undefined>(undefined);
+
+  const fetchUserRole = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/user/me`, {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const userData = await response.json();
+      setUserRole(userData.role);
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+    }
+  };
 
   const fetchConsumables = async () => {
     try {
@@ -56,18 +76,25 @@ const Dashboard: React.FC = () => {
   };
 
   const getPillClass = (available: number, total: number) => {
-  const percentage = (available / total) * 100;
-  if (percentage < 10) return 'bg-red-100 text-red-700 border border-red-300 rounded-full';
-  if (percentage < 30) return 'bg-yellow-100 text-yellow-700 border border-yellow-300 rounded-full';
-  return 'bg-green-100 text-green-700 border border-green-300 rounded-full';
-};
+    const percentage = (available / total) * 100;
+    if (percentage < 10) return 'bg-red-100 text-red-700 border border-red-300';
+    if (percentage < 30) return 'bg-yellow-100 text-yellow-700 border border-yellow-300';
+    return 'bg-green-100 text-green-700 border border-green-300';
+  };
 
   const handleConsumableClick = (consumable: Consumable) => {
-    setModalConsumable(consumable);
-    setIsModalOpen(true);
+    // Only open modal if user is an admin
+    if (userRole === 'admin') {
+      setModalConsumable(consumable);
+      setIsModalOpen(true);
+    } else {
+      // For dashboard users, show a toast notification that they don't have permission
+      toastError('You need admin access to view consumable details');
+    }
   };
 
   useEffect(() => {
+    fetchUserRole();
     fetchConsumables();
   }, []);
 
@@ -94,7 +121,10 @@ const Dashboard: React.FC = () => {
             className={`px-3 py-1.5 text-sm font-medium ${getPillClass(
               consumable.availableQuantity,
               consumable.quantity
-            )} hover:opacity-80 transition-opacity cursor-pointer text-center w-full max-w-[200px] truncate`}
+            )} hover:opacity-80 transition-opacity cursor-pointer text-left w-full max-w-[200px] truncate ${
+              userRole !== 'admin' ? 'cursor-not-allowed' : ''
+            }`}
+            title={userRole !== 'admin' ? 'Admin access required to view details' : 'Click to view details'}
           >
             {consumable.consumableName}
           </button>
@@ -102,7 +132,7 @@ const Dashboard: React.FC = () => {
       },
       sortingFn: 'alphanumeric',
       meta: {
-        filterType: "dropdown" as const
+        filterType: "multi-select" as const
       }
     }
   ];
@@ -117,7 +147,7 @@ const Dashboard: React.FC = () => {
       return key && value ? `${key}: ${value}` : '';
     },
     meta: {
-      filterType: "dropdown" as const
+      filterType: "multi-select" as const
     }
   }));
 
@@ -158,7 +188,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-<div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{ 
+    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{ 
       maxWidth: showAllColumns ? 'none' : '6xl',
       transition: 'max-width 0.3s ease-in-out'
     }}>
@@ -208,14 +238,18 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      <ConsumableDetailsModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setModalConsumable(null);
-        }}
-        consumable={modalConsumable}
-      />
+      {/* Only render the modal for admin users */}
+      {userRole === 'admin' && (
+        <ConsumableDetailsModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setModalConsumable(null);
+          }}
+          consumable={modalConsumable}
+        />
+      )}
+       <AuthDebug />
     </div>
   );
 };
