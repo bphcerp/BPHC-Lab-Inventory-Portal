@@ -33,6 +33,8 @@ router.get('/add', async (req: Request, res: Response) => {
         createdAt: transaction.createdAt?.toISOString(),
         categoryFields: transaction.categoryFields,
         remainingQuantity: transaction.remainingQuantity,
+        transactionType: 'ADD',
+        isDeleted: transaction.isDeleted || false
       };
     });
 
@@ -74,6 +76,8 @@ router.get('/issue', async (req: Request, res: Response) => {
         transactionDate: transaction.transactionDate.toISOString(),
         createdAt: transaction.createdAt?.toISOString(),
         remainingQuantity: transaction.remainingQuantity,
+        transactionType: 'ISSUE',
+        isDeleted: transaction.isDeleted || false
       };
     });
     res.status(200).json(formattedHistory);
@@ -82,6 +86,5 @@ router.get('/issue', async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error fetching issue consumable history: ' + (error as Error).message });
   }
 });
-
 
 export default router;
