@@ -105,9 +105,9 @@ const OutPage = () => {
   };
 
   const handleConsumableClaimed = () => {
+    // The toast is now handled within the modal itself
     fetchConsumables();
     setSelectedConsumables([]);
-    setIsClaimModalOpen(false);
   };
 
   const getMaxAttributeCount = (data: Consumable[]) => {
