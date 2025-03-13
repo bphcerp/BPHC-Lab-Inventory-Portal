@@ -15,6 +15,7 @@ interface Transaction {
   issuedTo?: { _id: string; name: string };
   categoryFields?: Record<string, any>;
   entryReferenceNumber?: string;
+  referenceNumber?: string;
 }
 
 interface ConsumableDetailsModalProps {
@@ -152,7 +153,9 @@ const ConsumableDetailsModal: React.FC<ConsumableDetailsModalProps> = ({
                         {new Date(transaction.transactionDate).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {transaction.entryReferenceNumber || '-'}
+                      {transaction.transactionType === 'ISSUE' 
+    ? transaction.referenceNumber 
+    : transaction.entryReferenceNumber || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-md text-sm font-medium ${className}`}>
