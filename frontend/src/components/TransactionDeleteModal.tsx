@@ -77,7 +77,6 @@ const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({
     }
   };
 
-
   return (
     <Modal show={isOpen} onClose={onClose} size="md" popup>
       <Modal.Header />
