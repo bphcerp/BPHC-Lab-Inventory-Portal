@@ -15,15 +15,15 @@ import historyRoutes from './routes/history';
 import consumableDetailsRoutes from './routes/consumableDetails';
 import consumableTransactionRoutes from './routes/consumableTransaction';
 import transactionRoutes from './routes/transactionsByPerson';
-import vendorTransactions from './routes/vendorTransactions'
-import { authenticateToken } from './middleware/authenticateToken';
+import vendorTransactions from './routes/vendorTransactions';
+import { authenticateToken, requireRole } from './middleware/authenticateToken';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT!;
 const url = 'https://bits-inventorymanagement-backend.onrender.com';
-const interval = 45000;
+const interval = 30000;
 
 mongoose.connect(process.env.DB_URI!)
   .then(() => console.log('MongoDB connected'))
@@ -36,17 +36,41 @@ app.use(cors({
   credentials: true
 }));
 
+// User routes - REMOVE the duplicate /api/user/me endpoint
+// and just use the one from userRoutes
 app.use('/api/user', userRoutes);
+
+// Admin-specific routes
+const adminRoutes = [
+  { path: '/api/user/manage', middleware: requireRole(['admin']) },
+  { path: '/api/report/admin', middleware: requireRole(['admin']) }
+];
+
+// Dashboard-specific routes
+const dashboardRoutes = [
+  { path: '/api/consumable/transaction', middleware: requireRole(['admin', 'dashboard']) },
+  { path: '/api/transactions', middleware: requireRole(['admin', 'dashboard']) }
+];
+
+// Add role-specific middleware to routes that need it
+adminRoutes.forEach(route => {
+  app.use(route.path, authenticateToken, route.middleware);
+});
+
+dashboardRoutes.forEach(route => {
+  app.use(route.path, authenticateToken, route.middleware);
+});
+
 //app.use('/api/category', categoryRoutes);
 app.use('/api/consumable', consumableRoutes); // Main consumable routes
 app.use('/api/consumable', outRoutes); // Mounting out routes at the same base URL as consumable
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/category', consumableCategoryRoutes);
-app.use('/api/history',historyRoutes);
-app.use('/api/report',reportRoutes);
-app.use('/api/transactions',transactionRoutes);
+app.use('/api/history', historyRoutes);
+app.use('/api/report', reportRoutes);
+app.use('/api/transactions', transactionRoutes);
 app.use('/api/vendorTransactions', vendorTransactions);
-app.use('/api/people',peopleRoutes);
+app.use('/api/people', peopleRoutes);
 app.use('/api/consumable-details', consumableDetailsRoutes);
 app.use('/api/consumable', consumableTransactionRoutes);
 app.use(express.static("public"));
@@ -56,13 +80,19 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.get('/api/check-auth', authenticateToken, (req: Request, res: Response) => {
-  res.send('Welcome to LAMBDA Inventory System API (Authenticated)');
+  res.status(200).json({ 
+    authenticated: true, 
+    message: 'Authenticated successfully',
+    user: req.user ? {
+      name: req.user.name,
+      role: req.user.role
+    } : null
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
 
 function keepAlive() {
   fetch(url)
