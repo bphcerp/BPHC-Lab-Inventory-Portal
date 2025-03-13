@@ -5,7 +5,6 @@ import { ColumnDef, VisibilityState } from '@tanstack/react-table';
 import ConsumableDetailsModal from '../components/ConsumableDetailsModal';
 import { Button } from 'flowbite-react';
 import { HiEye, HiEyeOff } from 'react-icons/hi';
-import AuthDebug from '../components/AuthDebug';
 
 export interface Consumable {
   _id: string;
@@ -249,7 +248,6 @@ const Dashboard: React.FC = () => {
           consumable={modalConsumable}
         />
       )}
-       <AuthDebug />
     </div>
   );
 };
