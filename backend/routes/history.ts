@@ -34,7 +34,8 @@ router.get('/add', async (req: Request, res: Response) => {
         categoryFields: transaction.categoryFields,
         remainingQuantity: transaction.remainingQuantity,
         transactionType: 'ADD',
-        isDeleted: transaction.isDeleted || false
+        isDeleted: transaction.isDeleted || false,
+        entryReferenceNumber: transaction.entryReferenceNumber
       };
     });
 
