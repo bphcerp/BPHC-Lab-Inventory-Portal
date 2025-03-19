@@ -1,11 +1,10 @@
-// consumableTransaction.ts
 import mongoose, { Schema, Document } from 'mongoose';
 import { IPeople } from './people';
 
 export interface IConsumableTransaction extends Document {
   transactionId: string;
   consumableName: string;
-  consumableId: mongoose.Schema.Types.ObjectId; // Add this field
+  consumableId: mongoose.Types.ObjectId; // Add this field
   transactionQuantity: number;
   referenceNumber: string;
   entryReferenceNumber: string; // Add this field
@@ -13,9 +12,9 @@ export interface IConsumableTransaction extends Document {
   totalConsumableCost: number;
   remainingQuantity: number;
   categoryFields: { type: mongoose.Schema.Types.Mixed, default: {} },
-  addedBy?: mongoose.Schema.Types.ObjectId | IPeople;
-  issuedBy?: mongoose.Schema.Types.ObjectId | IPeople;
-  issuedTo?: mongoose.Schema.Types.ObjectId | IPeople;
+  addedBy?: mongoose.Types.ObjectId | IPeople;
+  issuedBy?: mongoose.Types.ObjectId | IPeople;
+  issuedTo?: mongoose.Types.ObjectId | IPeople;
   transactionType: 'ADD' | 'ISSUE';
   createdAt: Date;
   updatedAt: Date;
