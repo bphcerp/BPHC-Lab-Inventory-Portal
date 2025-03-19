@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toastError } from '../toasts';
 import TransactionDeleteModal from '../components/TransactionDeleteModal';
+import TransactionEditModal from '../components/TransactionEditModal';
 
 interface CreditTransaction {
     _id: string;
@@ -10,7 +11,8 @@ interface CreditTransaction {
     addedBy: string;
     transactionDate: string;
     transactionType: 'ADD';
-    isDeleted?: boolean;
+    entryReferenceNumber: string;
+    isDeleted: boolean;
 }
 
 interface DebitTransaction {
@@ -24,7 +26,7 @@ interface DebitTransaction {
     transactionDate: string;
     remainingQuantity: number;
     transactionType: 'ISSUE';
-    isDeleted?: boolean;
+    isDeleted: boolean;
 }
 
 const LoadingSpinner: React.FC = () => (
@@ -39,6 +41,7 @@ const ConsumableHistory: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isCreditHistory, setIsCreditHistory] = useState(true);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<CreditTransaction | DebitTransaction | null>(null);
 
     const sortByDateTime = (transactions: (CreditTransaction | DebitTransaction)[]) => {
@@ -73,7 +76,8 @@ const ConsumableHistory: React.FC = () => {
 
             const data = await response.json();
             if (Array.isArray(data)) {
-                setHistory(data.map(item => ({ ...item, isDeleted: false })));
+                // The isDeleted flag should now come from the backend
+                setHistory(data);
             } else {
                 throw new Error("Unexpected data format from API");
             }
@@ -98,6 +102,11 @@ const ConsumableHistory: React.FC = () => {
         setIsDeleteModalOpen(true);
     };
 
+    const handleEdit = (transaction: CreditTransaction | DebitTransaction) => {
+        setSelectedTransaction(transaction);
+        setIsEditModalOpen(true);
+    };
+
     const handleTransactionDeleted = async () => {
         setIsDeleteModalOpen(false);
         if (selectedTransaction) {
@@ -114,6 +123,12 @@ const ConsumableHistory: React.FC = () => {
         setSelectedTransaction(null);
     };
 
+    const handleTransactionUpdated = async () => {
+        setIsEditModalOpen(false);
+        setSelectedTransaction(null);
+        // Refresh the data to show the updated transaction
+        await fetchHistory();
+    };
 
     const renderCategoryFields = (fields?: { [key: string]: any }) => {
         if (!fields || Object.keys(fields).length === 0) return <div>N/A</div>;
@@ -164,120 +179,156 @@ const ConsumableHistory: React.FC = () => {
             ) : (
                 <table className="min-w-full bg-white rounded-lg shadow-md overflow-hidden">
                   <thead className="bg-gray-100 border-b">
-    <tr>
-        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-            {isCreditHistory ? 'Consumable Added' : 'Consumable Issued'}
-        </th>
-        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-            Consumable Details
-        </th>
-        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-            {isCreditHistory ? 'Quantity Added' : 'Issued Quantity'}
-        </th>
-        {!isCreditHistory && (
-            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                Reference Number
-            </th>
-        )}
-        {isCreditHistory ? (
-            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                Added By
-            </th>
-        ) : (
-            <>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Issued To
-                </th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Issued By
-                </th>
-            </>
-        )}
-        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-            Date
-        </th>
-        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-            Actions
-        </th>
-    </tr>
-</thead>
-<tbody>
-    {history.map((item, index) => (
-        <tr 
-            key={index} 
-            className={`
-                transition-colors 
-                ${item.isDeleted 
-                    ? 'bg-red-100 hover:bg-red-200' 
-                    : index % 2 === 0  // Use even/odd for alternating colors
-                        ? 'bg-white hover:bg-gray-50'
-                        : 'bg-gray-50 hover:bg-gray-100'
-                }
-            `}
-        >
-            <td className="px-6 py-4 text-sm text-gray-800">
-                {item.consumableName}
-            </td>
-            <td className="px-6 py-4 text-sm text-gray-800">
-                {renderCategoryFields(item.categoryFields)}
-            </td>
-            <td className="px-6 py-4 text-sm text-gray-800">
-                {item.transactionQuantity}
-            </td>
-            {!isCreditHistory && (
-                <td className="px-6 py-4 text-sm text-gray-800">
-                    {(item as DebitTransaction).referenceNumber}
-                </td>
-            )}
-            {isCreditHistory ? (
-                <td className="px-6 py-4 text-sm text-gray-800">
-                    {(item as CreditTransaction).addedBy}
-                </td>
-            ) : (
-                <>
-                    <td className="px-6 py-4 text-sm text-gray-800">
-                        {(item as DebitTransaction).issuedToName}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-800">
-                        {(item as DebitTransaction).issuedByName}
-                    </td>
-                </>
-            )}
-            <td className="px-6 py-4 text-sm text-gray-800">
-                {new Date(item.transactionDate).toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                })}
-            </td>
-            <td className="px-6 py-4 text-sm text-gray-800 flex space-x-2">
-                {!item.isDeleted && (
-                    <button
-                        onClick={() => handleDelete(item)}
-                        className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                    >
-                        Delete
-                    </button>
-                )}
-                {item.isDeleted && (
-                    <span className="text-red-600 font-medium">Deleted</span>
-                )}
-            </td>
-        </tr>
-    ))}
-</tbody>
+                    <tr>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                            {isCreditHistory ? 'Consumable Added' : 'Consumable Issued'}
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                            Consumable Details
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                            {isCreditHistory ? 'Quantity Added' : 'Issued Quantity'}
+                        </th>
+                        {!isCreditHistory && (
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                                Reference Number
+                            </th>
+                        )}
+                        {isCreditHistory && (
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                                Entry Reference Number
+                            </th>
+                        )}
+                        {isCreditHistory ? (
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                                Added By
+                            </th>
+                        ) : (
+                            <>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                                    Issued To
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                                    Issued By
+                                </th>
+                            </>
+                        )}
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                            Date
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {history.map((item, index) => (
+                        <tr 
+                            key={index} 
+                            className={`
+                                transition-colors 
+                                ${item.isDeleted 
+                                    ? 'bg-red-100 hover:bg-red-200' 
+                                    : index % 2 === 0  // Use even/odd for alternating colors
+                                        ? 'bg-white hover:bg-gray-50'
+                                        : 'bg-gray-50 hover:bg-gray-100'
+                                }
+                            `}
+                        >
+                            <td className="px-6 py-4 text-sm text-gray-800">
+                                {item.consumableName}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-800">
+                                {renderCategoryFields(item.categoryFields)}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-800">
+                                {item.transactionQuantity}
+                            </td>
+                            {!isCreditHistory && (
+                                <td className="px-6 py-4 text-sm text-gray-800">
+                                    {(item as DebitTransaction).referenceNumber}
+                                </td>
+                            )}
+                            {isCreditHistory && (
+                                <td className="px-6 py-4 text-sm text-gray-800">
+                                    {(item as CreditTransaction).entryReferenceNumber}
+                                </td>
+                            )}
+                            {isCreditHistory ? (
+                                <td className="px-6 py-4 text-sm text-gray-800">
+                                    {(item as CreditTransaction).addedBy}
+                                </td>
+                            ) : (
+                                <>
+                                    <td className="px-6 py-4 text-sm text-gray-800">
+                                        {(item as DebitTransaction).issuedToName}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-800">
+                                        {(item as DebitTransaction).issuedByName}
+                                    </td>
+                                </>
+                            )}
+                            <td className="px-6 py-4 text-sm text-gray-800">
+    {item.transactionType === 'ISSUE' ? (
+        // For debit transactions - show date and time
+        new Date(item.transactionDate).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })
+    ) : (
+        // For credit transactions - show only date
+        new Date(item.transactionDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        })
+    )}
+</td>
+                            <td className="px-6 py-4 text-sm text-gray-800 flex space-x-2">
+                                {!item.isDeleted && (
+                                    <>
+                                        <button
+                                            onClick={() => handleEdit(item)}
+                                            className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(item)}
+                                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                                        >
+                                            Delete
+                                        </button>
+                                    </>
+                                )}
+                                {item.isDeleted && (
+                                    <span className="text-red-600 font-medium">Deleted</span>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
                 </table>
             )}
             {selectedTransaction && (
-                <TransactionDeleteModal
-                    isOpen={isDeleteModalOpen}
-                    onClose={() => setIsDeleteModalOpen(false)}
-                    transaction={selectedTransaction}
-                    onTransactionDeleted={handleTransactionDeleted}
-                />
+                <>
+                    <TransactionDeleteModal
+                        isOpen={isDeleteModalOpen}
+                        onClose={() => setIsDeleteModalOpen(false)}
+                        transaction={selectedTransaction}
+                        onTransactionDeleted={handleTransactionDeleted}
+                    />
+                    <TransactionEditModal
+                        isOpen={isEditModalOpen}
+                        onClose={() => setIsEditModalOpen(false)}
+                        transaction={selectedTransaction}
+                        onTransactionUpdated={handleTransactionUpdated}
+                    />
+                </>
             )}
         </div>
     );
