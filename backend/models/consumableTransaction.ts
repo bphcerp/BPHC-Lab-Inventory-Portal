@@ -25,9 +25,10 @@ export interface IConsumableTransaction extends Document {
 // Helper function for generating transaction IDs
 export const generateTransactionId = (transactionType: 'ADD' | 'ISSUE'): string => {
   const timestamp = new Date().getTime();
-  const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  const uuid = Math.random().toString(36).substring(2, 8); // Add this for extra uniqueness
   const prefix = transactionType === 'ADD' ? 'TRX-ADD-' : 'TRX-ISS-';
-  return `${prefix}${timestamp}-${randomNum}`;
+  return `${prefix}${timestamp}-${randomNum}-${uuid}`;
 };
 
 const ConsumableTransactionSchema = new Schema<IConsumableTransaction>({
