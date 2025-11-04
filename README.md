@@ -3,7 +3,7 @@
 ## _Please READ THIS before you make ANY changes to this repository_
 
 ## Labs Currently using this portal:
-###  1. LAMBDA - https://portal.lambda-india.com/
+###  1. LAMBDA - https://inventory.lambda-india.com/
 
 ## CI/CD
 -  The organisation this project is under (bphcerp) has two runners available as of when this README file was written.

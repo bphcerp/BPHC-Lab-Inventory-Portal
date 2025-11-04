@@ -163,7 +163,8 @@ router.post(
 
     // Forward to bulk handler
     req.body = bulkRequest;
-    return router.post('/claim/bulk')(req, res, next);
+    router.post('/claim/bulk')(req, res, next);
+    return
   })
 );
 

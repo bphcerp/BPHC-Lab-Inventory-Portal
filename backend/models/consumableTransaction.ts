@@ -48,8 +48,10 @@ const ConsumableTransactionSchema = new Schema<IConsumableTransaction>({
     required: true 
   },
   entryReferenceNumber: { 
-    type: String, 
+    type: String,
+    // @ts-ignore 
     required: function() {
+      // @ts-ignore
       return this.transactionType === 'ADD'; // Only required for ADD transactions
     },  // Make it required
     index: true      // Index it for faster lookups
