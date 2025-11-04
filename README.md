@@ -9,6 +9,7 @@
 -  The organisation this project is under (bphcerp) has two runners available as of when this README file was written.
 - This project uses the `eee-ims` runner to clone and update the code on the oracle compute instance
 - Seperate jobs are configured in the pipeline.yml file for the each lab. If you need to add more refer to [this](#steps-to-add-another-lab)
+- Refer [BPHC-Lab-Finance-Portal](https://github.com/bphcerp/BPHC-Lab-Finance-Portal)
 
 ---
 
