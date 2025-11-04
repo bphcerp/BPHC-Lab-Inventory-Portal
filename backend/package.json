@@ -1,9 +1,9 @@
 {
-  "name": "lambda-backend",
+  "name": "backend",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "ts-node --transpile-only index.ts",
+    "db:seed": "tsx ./config/seed.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

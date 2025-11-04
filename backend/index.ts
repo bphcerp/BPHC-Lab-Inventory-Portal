@@ -22,8 +22,6 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT!;
-const url = 'https://bits-inventorymanagement-backend.onrender.com';
-const interval = 30000;
 
 mongoose.connect(process.env.DB_URI!)
   .then(() => console.log('MongoDB connected'))
@@ -93,15 +91,3 @@ app.get('/api/check-auth', authenticateToken, (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-function keepAlive() {
-  fetch(url)
-    .then((response) => {
-      console.log(`Pinged at ${new Date().toISOString()}: Status Code ${response.status}`);
-    })
-    .catch((error) => {
-      console.error(`Error pinging at ${new Date().toISOString()}:`, error.message);
-    });
-}
-
-setInterval(keepAlive, interval);

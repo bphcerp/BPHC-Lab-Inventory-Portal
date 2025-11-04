@@ -1,0 +1,41 @@
+FROM node:20-alpine AS build-stage
+
+ENV NODE_ENV production
+WORKDIR /usr/local/app
+
+RUN npm install -g pnpm
+
+WORKDIR /usr/local/app/frontend
+
+COPY --chown=node:node frontend/tsconfig*.json ./
+COPY --chown=node:node frontend/public ./public/
+COPY --chown=node:node frontend/postcss.config.js ./
+COPY --chown=node:node frontend/tailwind.config.js ./
+COPY --chown=node:node frontend/vite.config.ts ./
+COPY --chown=node:node frontend/index.html ./
+COPY --chown=node:node .env ./
+COPY --chown=node:node frontend/package.json ./
+
+WORKDIR /usr/local/app
+COPY ./pnpm-lock.yaml ./
+COPY ./pnpm-workspace.yaml ./
+RUN pnpm install -r
+
+WORKDIR /usr/local/app/frontend
+
+COPY --chown=node:node frontend/src ./src
+
+RUN pnpm run build
+
+FROM node:20-alpine AS production
+
+WORKDIR /usr/local/app/frontend
+
+RUN npm install -g serve
+
+COPY --from=build-stage /usr/local/app/frontend/dist ./dist
+COPY --from=build-stage /usr/local/app/frontend/package.json ./
+COPY --from=build-stage /usr/local/app/frontend/public ./public
+
+EXPOSE 3000
+CMD ["serve", "-s", "./dist", "-l", "3000"]
