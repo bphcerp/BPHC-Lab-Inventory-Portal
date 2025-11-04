@@ -57,8 +57,6 @@ const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      
       // Show success toast, close modal and refresh data
       toastSuccess(`Transaction for ${transaction.consumableName} deleted successfully`);
       onTransactionDeleted();

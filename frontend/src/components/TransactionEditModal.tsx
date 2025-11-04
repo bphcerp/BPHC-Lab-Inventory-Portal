@@ -114,7 +114,6 @@ const TransactionEditModal: React.FC<TransactionEditModalProps> = ({
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
       toastSuccess(`Transaction for ${transaction.consumableName} updated successfully`);
       onTransactionUpdated();
       onClose();
