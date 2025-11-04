@@ -29,8 +29,6 @@ router.get('/', authenticateToken, requireRole(['admin']), async (req: Request, 
 // Get current user information - add debugging logs
 router.get('/me', authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
-    // Debug logging
-    console.log('ME ENDPOINT - User object:', JSON.stringify(req.user, null, 2));
     
     // req.user is set by the authenticateToken middleware
     if (!req.user) {
@@ -46,19 +44,12 @@ router.get('/me', authenticateToken, async (req: Request, res: Response): Promis
       role: req.user.role || 'admin' // Temporary: default to admin if role is undefined
     };
     
-    console.log('ME ENDPOINT - Sending response:', JSON.stringify(response, null, 2));
     res.json(response);
   } catch (error) {
     console.error('ME ENDPOINT - Error:', error);
     res.status(500).json({ message: 'Error fetching user data', error });
   }
 
-  // In user.ts GET '/' route
-console.log('GET /api/user request with user:', {
-	id: req.user?._id,
-	email: req.user?.email, 
-	role: req.user?.role
-  });
 });
 
 // Create new user (admin only)

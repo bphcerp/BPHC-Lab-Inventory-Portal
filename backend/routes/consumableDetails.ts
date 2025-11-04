@@ -39,11 +39,6 @@ router.get('/', async (req: Request, res: Response) => {
       .populate('issuedBy', 'name')
       .populate('issuedTo', 'name');
 
-      console.log('Raw transactions from DB:', JSON.stringify(transactions.map(t => ({
-        _id: t._id,
-        entryReferenceNumber: t.entryReferenceNumber // Check if this exists
-      })), null, 2));
-
     const response = transactions.map(transaction => ({
       transactionId: transaction._id,
       consumableName: transaction.consumableName,

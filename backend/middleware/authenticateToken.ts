@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
-import { UserModel } from '../models/user';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
+import { UserModel } from "../models/user";
 
 // Extend Express Request interface to include user information
 declare global {
@@ -19,12 +19,16 @@ declare global {
 
 const client = new OAuth2Client(process.env.OAUTH_CID);
 
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   // Retrieve token from cookies or Authorization header
-  const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    res.status(401).json({ authenticated: false, message: 'No token found' });
+    res.status(401).json({ authenticated: false, message: "No token found" });
     return;
   }
 
@@ -39,7 +43,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
             _id: user._id.toString(),
             name: user.name,
             email: user.email,
-            role: user.role || 'admin'
+            role: user.role || "admin",
           };
           next();
           return;
@@ -47,59 +51,60 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       }
     } catch (err) {
       // If JWT verification fails, try Google token
-      console.log('JWT verification failed, trying Google token');
-    }
 
-    // Verify as Google token
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.OAUTH_CID,
-    });
-    
-    const payload = ticket.getPayload();
-    if (payload && payload.email) {
-      const user = await UserModel.findOne({ email: payload.email }).lean();
-      if (user) {
-        req.user = {
-          _id: user._id.toString(),
-          name: user.name || payload.name || '',
-          email: user.email,
-          role: user.role || 'admin'
-        };
-        next();
-        return;
+      // Verify as Google token
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.OAUTH_CID,
+      });
+
+      const payload = ticket.getPayload();
+      if (payload && payload.email) {
+        const user = await UserModel.findOne({ email: payload.email }).lean();
+        if (user) {
+          req.user = {
+            _id: user._id.toString(),
+            name: user.name || payload.name || "",
+            email: user.email,
+            role: user.role || "admin",
+          };
+          next();
+          return;
+        }
       }
     }
-    
-    res.status(401).json({ authenticated: false, message: 'User not found' });
+
+    res.status(401).json({ authenticated: false, message: "User not found" });
   } catch (error) {
-    console.error('Authentication error:', error);
-    res.status(401).json({ authenticated: false, message: 'Invalid or expired token' });
+    console.error("Authentication error:", error);
+    res
+      .status(401)
+      .json({ authenticated: false, message: "Invalid or expired token" });
   }
 };
 
 export const requireRole = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      res.status(401).json({ message: 'Not authenticated' });
+      res.status(401).json({ message: "Not authenticated" });
       return;
     }
-    
-    const userRole = req.user.role || 'admin'; // Apply temporary fix consistently
-    
+
+    const userRole = req.user.role || "admin"; // Apply temporary fix consistently
+
     if (!roles.includes(userRole)) {
-      res.status(403).json({ 
-        message: 'Access denied. Insufficient permissions.',
+      res.status(403).json({
+        message: "Access denied. Insufficient permissions.",
         required: roles,
-        current: userRole
+        current: userRole,
       });
       return;
     }
-    
-    console.log('User authenticated:', {
+
+    console.log("User authenticated:", {
       id: req.user?._id,
       email: req.user?.email,
-      role: userRole
+      role: userRole,
     });
     next();
   };

@@ -36,8 +36,6 @@ const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({
     };
 
     try {
-      console.log('Sending delete request with data:', requestData);
-      
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable/transaction/delete`, {
         method: 'POST',
         headers: {
@@ -47,8 +45,6 @@ const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({
         body: JSON.stringify(requestData),
       });
 
-      console.log('Response status:', response.status);
-      
       if (!response.ok) {
         let errorMessage;
         try {
@@ -62,7 +58,6 @@ const TransactionDeleteModal: React.FC<TransactionDeleteModalProps> = ({
       }
 
       const data = await response.json();
-      console.log('Delete successful:', data);
       
       // Show success toast, close modal and refresh data
       toastSuccess(`Transaction for ${transaction.consumableName} deleted successfully`);

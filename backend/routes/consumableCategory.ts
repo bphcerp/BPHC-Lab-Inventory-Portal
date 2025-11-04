@@ -25,13 +25,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response): Promise<void> 
 
 router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void> => {
     try {
-        // Debug log to see incoming request body
-        console.log('Received request body:', req.body);
-        
         const { consumableName, fields } = req.body as ConsumableCategoryRequest;
-
-        // Debug log after destructuring
-        console.log('Destructured values:', { consumableName, fields });
 
         // Validate consumable name
         if (!consumableName?.trim()) {
@@ -112,12 +106,8 @@ router.post('/', asyncHandler(async (req: Request, res: Response): Promise<void>
             fields: cleanedFields
         });
 
-        // Debug log before saving
-        console.log('Attempting to save category:', newCategory.toObject());
-
         await newCategory.save();
         
-        console.log('Category saved successfully');
         res.status(201).json(newCategory);
     } catch (error: any) {
         console.error('Detailed error in category creation:', {
@@ -197,9 +187,6 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response): Promise<voi
     try {
         const { id } = req.params;
         const { consumableName, fields } = req.body as ConsumableCategoryRequest;
-
-        // Debug log
-        console.log('Update request:', { id, consumableName, fields });
 
         // Validate ID
         if (!id) {
@@ -288,7 +275,6 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        console.log('Category updated successfully:', updatedCategory);
         res.status(200).json(updatedCategory);
     } catch (error: any) {
         console.error('Error updating category:', error);

@@ -29,7 +29,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ homePage, requiredRole,
 
         if (res.status === 200) {
           const userData = await res.json();
-          console.log("User data from /user/me:", userData); // Debugging log
           setAuthState({
             isAuthenticated: true,
             userRole: userData.role,

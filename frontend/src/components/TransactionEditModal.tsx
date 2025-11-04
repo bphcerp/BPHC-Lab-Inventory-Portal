@@ -93,8 +93,6 @@ const TransactionEditModal: React.FC<TransactionEditModalProps> = ({
     };
 
     try {
-      console.log('Sending edit request with data:', requestData);
-      
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/consumable/transaction/edit`, {
         method: 'PUT',
         headers: {
@@ -117,8 +115,6 @@ const TransactionEditModal: React.FC<TransactionEditModalProps> = ({
       }
 
       const data = await response.json();
-      console.log('Edit successful:', data);
-      
       toastSuccess(`Transaction for ${transaction.consumableName} updated successfully`);
       onTransactionUpdated();
       onClose();

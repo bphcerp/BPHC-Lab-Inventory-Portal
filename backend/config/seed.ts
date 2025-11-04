@@ -32,7 +32,7 @@ async function main() {
 		throw new Error('Missing one or more required MongoDB environment variables: MONGO_HOST, MONGO_PORT, MONGO_DB, MONGO_USER, MONGO_PASSWORD');
 	}
 
-	const MONGO_URI = `mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin`;
+	const MONGO_URI = `mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin&replicaSet=rs0`;
 	await mongoose.connect(MONGO_URI);
 
 	// Check if user already exists
@@ -49,7 +49,7 @@ async function main() {
 		process.exit(0);
 	}
 
-	const user = new UserModel({ email, ...(normalizedRole ? { role: normalizedRole } : {}) });
+	const user = new UserModel({ email,name: 'Seeded User', ...(normalizedRole ? { role: normalizedRole } : {}) });
 	await user.save();
 	console.log(`Added user with email: ${email} as ${user.role}`);
 	await mongoose.disconnect();
